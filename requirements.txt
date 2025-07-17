@@ -7,3 +7,4 @@ google-cloud-bigquery
 pymongo
 streamlit-aggrid
 watchdog
+plotly

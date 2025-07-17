@@ -1,0 +1,9 @@
+streamlit
+pandas
+requests
+matplotlib
+seaborn
+google-cloud-bigquery
+pymongo
+streamlit-aggrid
+watchdog

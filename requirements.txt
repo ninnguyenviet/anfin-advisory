@@ -8,3 +8,4 @@ pymongo
 streamlit-aggrid
 watchdog
 plotly
+db-dtypes>=1.0.0

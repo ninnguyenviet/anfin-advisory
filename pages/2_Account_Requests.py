@@ -16,8 +16,8 @@ st.sidebar.title("🔎 Bộ lọc")
 status_options = ["Tất cả", "NEW", "APPROVED", "CANCELLED"]
 status_selected = st.sidebar.selectbox("Trạng thái", status_options)
 
-type_options = ["Tất cả", "CREATE", "UPDATE"]
-type_selected = st.sidebar.selectbox("Type", type_options)
+source_options = ["Tất cả", "AnfinXMobile", "AnfinXWebsite"]
+source_selected = st.sidebar.selectbox("Source", source_options)
 
 search_text = st.sidebar.text_input("Tìm kiếm (Tên, SĐT, User ID)")
 
@@ -28,8 +28,8 @@ df = load_account_requests()
 if status_selected != "Tất cả":
     df = df[df["status"] == status_selected]
 
-if type_selected != "Tất cả":
-    df = df[df["type"] == type_selected]
+if source_selected != "Tất cả":
+    df = df[df["source"] == source_selected]
 
 if search_text:
     df = df[

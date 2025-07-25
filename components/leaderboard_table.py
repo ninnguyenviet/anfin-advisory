@@ -4,13 +4,13 @@ def render_account_table(df):
     st.subheader("Danh sách Account Requests")
 
     display_cols = [
-        "id",
         "display_name",
         "group_name",
         "phone_number",
         "status",
         "type",
-        "created_at_vn_str"
+        "created_at",
+        "source"
     ]
 
     STATUS_COLORS = {
@@ -38,7 +38,7 @@ def render_account_details(df):
         st.success("Hiện không có account nào ở trạng thái NEW.")
     else:
         for _, row in df_new.iterrows():
-            with st.expander(f"👁 {row['display_name']} ({row['created_at_vn_str']})"):
+            with st.expander(f"👁 {row['display_name']} ({row['created_at']})"):
                 left, right = st.columns([1, 3])
 
                 with left:
@@ -48,7 +48,7 @@ def render_account_details(df):
                     st.markdown(f"**👤 Tên:** {row['display_name']}")
                     st.markdown(f"**👥 Group:** {row['group_name']}")
                     st.markdown(f"**📞 SĐT:** {row['phone_number']}")
-                    st.markdown(f"**🕑 Thời gian tạo (VN):** {row['created_at_vn_str']}")
+                    st.markdown(f"**🕑 Thời gian tạo (VN):** {row['created_at']}")
                     st.markdown(f"**📋 Trạng thái:** {row['status']}")
                     st.markdown(f"**🔖 Type:** {row['type']}")
                     st.markdown(f"**📝 Bio:** {row['bio'] or '-'}")

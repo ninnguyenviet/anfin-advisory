@@ -8,6 +8,7 @@ from google.cloud import bigquery
 from google.oauth2 import service_account
 import pandas as pd
 
+
 def get_token():
     token_payload = { "user_id": USER_ID }
     token_headers = { "Content-Type": "application/json" }
@@ -54,3 +55,4 @@ def load_season_data(season_ids):
             row["season_id"] = season_id
         all_data.extend(ranks)
     return pd.DataFrame(all_data)
+

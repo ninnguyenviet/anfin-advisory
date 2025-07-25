@@ -1,8 +1,7 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime
-from services.api_utils import load_season_data
-from services.bigquery_client import load_seasons_from_bq
+from services.bigquery_client import load_seasons_from_bq, load_season_data
 
 st.set_page_config(
     page_title="Advisory User Rank",
@@ -67,36 +66,56 @@ if season_ids:
     df["created_at"] = pd.to_datetime(df["created_at"])
 
     # Tổng quan chung
-    kpi_num_seasons = df["season_id"].nunique()
+    kpi_num_seasons = df["leaderboard_id"].nunique()
     kpi_num_users = df["user_id"].nunique()
     kpi_total_lot = df["total_lot"].sum()
 
-    # Tính tổng thưởng tháng = total_lot * 10_000
+    # TÍNH BONUS
     total_lot_current = df["total_lot"].sum()
     reward_pool = round(total_lot_current * 10_000)
 
-    # --- Xử lý TOP 3 ---
-    df_top3 = df.sort_values(by="total_lot", ascending=False).head(3).copy()
-    reward_split = [0.5, 0.3, 0.2]  # tỷ lệ chia thưởng
+    # Thưởng cộng dồn từ tháng trước
+    current_season_id = season_ids[0]
+    season_index = seasons_df[seasons_df["id"] == current_season_id].index[0]
+    previous_season_bonus = 0
+    reward_split = [0.5, 0.3, 0.2]
     rank_icons = {1: "🥇", 2: "🥈", 3: "🥉"}
 
+    if season_index > 0:
+        previous_season_id = seasons_df.iloc[season_index - 1]["id"]
+        df_prev = load_season_data([previous_season_id])
+
+        if not df_prev.empty:
+            df_prev["realized_pnl"] = df_prev["realized_pnl"].astype("float64")
+            df_prev["total_lot"] = df_prev["total_lot"].astype("float64")
+            df_prev_top3 = df_prev.sort_values(by="total_lot", ascending=False).head(3)
+
+            for idx, row in enumerate(df_prev_top3.itertuples()):
+                if row.realized_pnl <= 0:
+                    prev_reward = round(row.total_lot * 10_000 * reward_split[idx])
+                    previous_season_bonus += prev_reward
+
+    reward_pool += previous_season_bonus
+
+    # Tính thưởng cho TOP 3
+    df_top3 = df.sort_values(by="total_lot", ascending=False).head(3).copy()
     bonus_given = 0
     bonuses = []
 
-    for idx, (i, row) in enumerate(df_top3.iterrows()):
-        rank = row["rank"]
+    for idx, row in enumerate(df_top3.itertuples()):
+        rank = row.rank
         icon = rank_icons.get(rank, "")
         ratio = reward_split[idx]
         bonus_amount = round(reward_pool * ratio)
-        condition = "Được nhận" if row["realized_pnl"] > 0 else "Cộng dồn tháng sau"
+        condition = "Được nhận" if row.realized_pnl > 0 else "Cộng dồn tháng sau"
         if condition == "Được nhận":
             bonus_given += bonus_amount
         bonuses.append({
             "Hạng": f"{icon} TOP {rank}",
-            "User ID": row["user_id"],
-            "Họ tên": row["alias_name"],
+            "User ID": row.user_id,
+            "Họ tên": row.full_name,
             "Tên giải thưởng": "Chiến Thần Lot",
-            "Tổng Lot": row["total_lot"],
+            "Tổng Lot": row.total_lot,
             "Tiền thưởng (VNĐ)": bonus_amount,
             "Điều kiện nhận thưởng": condition
         })
@@ -135,36 +154,25 @@ if season_ids:
         else:
             return f"{val:,.0f}"
 
-    df["commission_fmt"] = df["total_earned_commission_fee"].apply(format_money)
-    df["realized_pnl_fmt"] = df["realized_pnl"].apply(format_money)
-    df["aum_fmt"] = df["aum"].apply(format_money)
-    df["bonus_amount"] = df["total_lot"].apply(lambda x: round(x * 10_000))
-    df["bonus_condition"] = df["realized_pnl"].apply(
-        lambda x: "Được nhận" if x > 0 else "Cộng dồn tháng sau"
-    )
-    df["link_profile"] = df["link_profile"].apply(
-        lambda x: f"[Xem Profile]({x})" if x else "-"
-    )
+    df["commission_fmt"] = df["total_earned_commission_fee"].astype("float64").apply(format_money)
+    df["realized_pnl_fmt"] = df["realized_pnl"].astype("float64").apply(format_money)
+    df["aum_fmt"] = df["aum"].astype("float64").apply(format_money)
 
     all_cols = [
-        "season_id", "rank", "alias_name", "user_id",
-        "total_lot", "commission_fmt", "realized_pnl_fmt",
-        "aum_fmt", "bonus_amount", "bonus_condition", "link_profile"
+        "leaderboard_id", "rank", "alias_name", "user_id",
+        "total_lot", "commission_fmt", "realized_pnl_fmt", "aum_fmt"
     ]
 
     st.dataframe(
         df[all_cols].rename(columns={
-            "season_id": "Season",
+            "leaderboard_id": "Season",
             "rank": "Hạng",
             "alias_name": "Tên",
             "user_id": "User ID",
             "total_lot": "Tổng Lot",
             "commission_fmt": "Hoa hồng",
             "realized_pnl_fmt": "PnL",
-            "aum_fmt": "AUM",
-            "bonus_amount": "Tiền thưởng (VNĐ)",
-            "bonus_condition": "Điều kiện thưởng",
-            "link_profile": "Profile"
+            "aum_fmt": "AUM"
         }),
         use_container_width=True,
         hide_index=True

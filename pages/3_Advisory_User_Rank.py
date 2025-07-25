@@ -125,7 +125,7 @@ if season_ids:
             "Họ tên": row.full_name,
             "Tên giải thưởng": "Chiến Thần Lot",
             "Tổng Lot": row.total_lot,
-            "Tiền thưởng (VNĐ)": bonus_amount.apply(format_money),
+            "Tiền thưởng (VNĐ)": bonus_amount.astype("float64").apply(format_money),
             "Điều kiện nhận thưởng": condition
         })
 

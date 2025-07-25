@@ -50,7 +50,7 @@ season_ids = [season_name_map[selected_season_name]]
 if season_ids:
     with st.spinner("Đang tải dữ liệu..."):
         df = load_season_data_new(season_ids)
-
+        df.sort_values(by=["leaderboard_id", "rank"], inplace=True)
     if df.empty:
         st.info("Không có dữ liệu.")
         st.stop()

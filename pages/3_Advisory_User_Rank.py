@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime
-from services.bigquery_client import load_seasons_from_bq, load_season_data
+from services.bigquery_client import load_seasons_from_bq, load_season_data_new
 
 st.set_page_config(
     page_title="Advisory User Rank",
@@ -49,7 +49,7 @@ season_ids = [season_name_map[selected_season_name]]
 # Load dữ liệu leaderboard
 if season_ids:
     with st.spinner("Đang tải dữ liệu..."):
-        df = load_season_data(season_ids)
+        df = load_season_data_new(season_ids)
 
     if df.empty:
         st.info("Không có dữ liệu.")

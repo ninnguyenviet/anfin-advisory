@@ -71,7 +71,7 @@ def load_kpi_data():
     return df
 
 
-def load_season_data(season_id):
+def load_season_data_new(season_id):
     credentials = service_account.Credentials.from_service_account_info(
         st.secrets["google_service_account"]
     )

@@ -83,7 +83,7 @@ if season_ids:
 
     if season_index > 0:
         previous_season_id = seasons_df.iloc[season_index - 1]["id"]
-        df_prev = load_season_data([previous_season_id])
+        df_prev = load_season_data_new([previous_season_id])
 
         if not df_prev.empty:
             df_prev["realized_pnl"] = df_prev["realized_pnl"].astype("float64")

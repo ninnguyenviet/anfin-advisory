@@ -101,6 +101,15 @@ if season_ids:
     df_top3 = df.sort_values(by="total_lot", ascending=False).head(3).copy()
     bonus_given = 0
     bonuses = []
+    def format_money(val):
+        if pd.isna(val):
+            return "-"
+        elif abs(val) >= 1e9:
+            return f"{val/1e9:.2f} tỷ"
+        elif abs(val) >= 1e6:
+            return f"{val/1e6:.1f} triệu"
+        else:
+            return f"{val:,.0f}"
 
     for idx, row in enumerate(df_top3.itertuples()):
         rank = row.rank
@@ -116,7 +125,7 @@ if season_ids:
             "Họ tên": row.full_name,
             "Tên giải thưởng": "Chiến Thần Lot",
             "Tổng Lot": row.total_lot,
-            "Tiền thưởng (VNĐ)": bonus_amount,
+            "Tiền thưởng (VNĐ)": bonus_amount.apply(format_money),
             "Điều kiện nhận thưởng": condition
         })
 
@@ -144,15 +153,7 @@ if season_ids:
     # --- Bảng chi tiết toàn bộ ---
     st.markdown("## 📋 Bảng chi tiết tất cả User")
 
-    def format_money(val):
-        if pd.isna(val):
-            return "-"
-        elif abs(val) >= 1e9:
-            return f"{val/1e9:.2f} tỷ"
-        elif abs(val) >= 1e6:
-            return f"{val/1e6:.1f} triệu"
-        else:
-            return f"{val:,.0f}"
+
 
     df["commission_fmt"] = df["total_earned_commission_fee"].astype("float64").apply(format_money)
     df["realized_pnl_fmt"] = df["realized_pnl"].astype("float64").apply(format_money)

@@ -1,86 +1,69 @@
-# pages/2_Account_Requests.py
-
 import streamlit as st
 import pandas as pd
-from services.bigquery_client import load_account_requests
-from components.leaderboard_table import render_account_table, render_account_details
+from datetime import datetime, timedelta
+from services.bigquery_client import load_account_request_data
 
 st.set_page_config(
-    page_title="Dashboard Quản lý Account Requests",
+    page_title="Account Requests",
     layout="wide"
 )
 
-# Sidebar filters
-st.sidebar.title("🔎 Bộ lọc")
+st.title("📥 Account Requests")
 
-status_options = ["Tất cả", "NEW", "APPROVED", "CANCELLED"]
-status_selected = st.sidebar.selectbox("Trạng thái", status_options)
+# --- Load data
+with st.spinner("Loading data..."):
+    df = load_account_request_data()
 
-source_options = ["Tất cả", "AnfinXMobile", "AnfinXWebsite"]
-source_selected = st.sidebar.selectbox("Source", source_options)
+if df is None or df.empty:
+    st.warning("⚠️ No data available.")
+    st.stop()
 
-search_text = st.sidebar.text_input("Tìm kiếm (Tên, SĐT, User ID)")
+# --- Kiểm tra cột bắt buộc
+required_cols = ["status", "created_at", "full_name", "group_name", "note", "id"]
+missing_cols = [col for col in required_cols if col not in df.columns]
+if missing_cols:
+    st.error(f"Missing columns in data: {missing_cols}")
+    st.stop()
 
-# Load data
-df = load_account_requests()
+# --- Tiền xử lý dữ liệu
+df = df.drop_duplicates(subset="id")
+df["created_at"] = pd.to_datetime(df["created_at"])
 
-# Làm sạch index để tránh lỗi reindex
-df = df.reset_index(drop=True)
-df.index = range(len(df))
+# --- Lọc theo thời gian
+today = datetime.now()
+start_time = today.replace(hour=0, minute=0, second=0, microsecond=0)
+last_24h = today - timedelta(hours=24)
 
-# Đảm bảo các cột cần thiết tồn tại
-required_cols = ["status", "source", "display_name", "phone_number", "user_id"]
-for col in required_cols:
-    if col not in df.columns:
-        df[col] = None
+mask_new = (df["status"] == "new") & (df["created_at"] >= start_time)
+mask_processed = df["status"] != "new"
 
-# Áp dụng bộ lọc
-if status_selected != "Tất cả":
-    df = df[df["status"] == status_selected]
+new_requests = df[mask_new]
+processed_requests = df[mask_processed]
 
-if source_selected != "Tất cả":
-    df = df[df["source"] == source_selected]
+# --- Thống kê
+st.subheader("📊 Tổng quan")
 
-if search_text:
-    df = df[
-        df["display_name"].fillna("").str.contains(search_text, case=False) |
-        df["phone_number"].fillna("").str.contains(search_text) |
-        df["user_id"].fillna("").str.contains(search_text)
-    ]
+col1, col2 = st.columns(2)
+col1.metric("Yêu cầu mới hôm nay", len(new_requests))
+col2.metric("Yêu cầu đã xử lý", len(processed_requests))
 
-# Reset lại index sau khi lọc
-df = df.reset_index(drop=True)
-df.index = range(len(df))
-
-# Render tiêu đề trang
-st.markdown("""
-    <h1 style='text-align: center; margin-bottom: 20px;'>Dashboard Quản lý Account Requests</h1>
-""", unsafe_allow_html=True)
-
-# ✅ Thống kê số lượng trạng thái (AN TOÀN tuyệt đối)
-total = len(df)
-
-if not df.empty and "status" in df.columns:
+# --- Biểu đồ trạng thái
+if "status" in df.columns and df["status"].ndim == 1:
     status_counts = df["status"].value_counts()
-    new_count = status_counts.get("NEW", 0)
-    approved_count = status_counts.get("APPROVED", 0)
-    cancelled_count = status_counts.get("CANCELLED", 0)
+    st.bar_chart(status_counts)
 else:
-    new_count = approved_count = cancelled_count = 0
+    st.warning("Không thể vẽ biểu đồ trạng thái: dữ liệu không hợp lệ.")
 
-# Hiển thị metric
-col_space, col1, col2, col3, col4, col_space2 = st.columns([4.5, 3, 3, 3, 3, 3])
-col1.metric("🧑‍💻 Tổng số Account", total)
-col2.metric("🟡 Chờ duyệt (NEW)", new_count)
-col3.metric("✅ Đã duyệt (APPROVED)", approved_count)
-col4.metric("❌ Bị từ chối (CANCELLED)", cancelled_count)
+# --- Hiển thị bảng yêu cầu mới
+st.subheader("🆕 Yêu cầu mới hôm nay")
+if not new_requests.empty:
+    st.dataframe(new_requests[["created_at", "full_name", "group_name", "note"]].sort_values("created_at", ascending=False), use_container_width=True)
+else:
+    st.info("Không có yêu cầu mới hôm nay.")
 
-st.markdown("---")
-
-# Hiển thị bảng
-render_account_table(df)
-
-st.markdown("---")
-
-# Hiển thị chi tiết account (nếu có logic cho NEW)
-render_account_details(df)
+# --- Hiển thị bảng yêu cầu đã xử lý
+st.subheader("✅ Yêu cầu đã xử lý")
+if not processed_requests.empty:
+    st.dataframe(processed_requests[["created_at", "full_name", "group_name", "status", "note"]].sort_values("created_at", ascending=False), use_container_width=True)
+else:
+    st.info("Không có yêu cầu đã xử lý.")

@@ -2,8 +2,6 @@
 
 import streamlit as st
 import pandas as pd
-
-# Import chuẩn từ service (bạn kiểm tra tên function chính xác)
 from services.bigquery_client import load_account_requests
 from components.leaderboard_table import render_account_table, render_account_details
 
@@ -24,18 +22,7 @@ source_selected = st.sidebar.selectbox("Source", source_options)
 search_text = st.sidebar.text_input("Tìm kiếm (Tên, SĐT, User ID)")
 
 # Load data
-try:
-    df = load_account_requests()
-except Exception as e:
-    st.error(f"Lỗi khi load dữ liệu: {e}")
-    st.stop()
-
-# Kiểm tra cột cần thiết
-required_cols = ["status", "source", "display_name", "phone_number", "user_id"]
-missing_cols = [col for col in required_cols if col not in df.columns]
-if missing_cols:
-    st.warning(f"Dữ liệu thiếu các cột: {', '.join(missing_cols)}")
-    st.stop()
+df = load_account_requests()
 
 # Apply filters
 if status_selected != "Tất cả":
@@ -56,18 +43,15 @@ st.markdown("""
     <h1 style='text-align: center; margin-bottom: 20px;'>Dashboard Quản lý Account Requests</h1>
 """, unsafe_allow_html=True)
 
-# ✅ METRICS
-if not df.empty:
-    total = len(df)
-    new_count = (df["status"] == "NEW").sum()
-    approved_count = (df["status"] == "APPROVED").sum()
-    cancelled_count = (df["status"] == "CANCELLED").sum()
-else:
-    total = new_count = approved_count = cancelled_count = 0
-
-# Layout columns
+# ✅ ADD METRICS CARDS
+total = len(df)
+new_count = len(df[df["status"] == "NEW"])
+approved_count = len(df[df["status"] == "APPROVED"])
+cancelled_count = len(df[df["status"] == "CANCELLED"])
+# tạo 3 cột cho Lots căn giữa
 col_space, col1, col2, col3, col4, col_space2 = st.columns([4.5, 3, 3, 3, 3, 3])
 
+# col1, col2, col3, col4 = st.columns(4)
 col1.metric("🧑‍💻 Tổng số Account", total)
 col2.metric("🟡 Chờ duyệt (NEW)", new_count)
 col3.metric("✅ Đã duyệt (APPROVED)", approved_count)
@@ -80,9 +64,5 @@ render_account_table(df)
 
 st.markdown("---")
 
-# Chỉ render detail với status NEW
-df_new = df[df["status"] == "NEW"]
-if not df_new.empty:
-    render_account_details(df_new)
-else:
-    st.info("Không có account nào ở trạng thái NEW.")
+# Render Detail Viewer chỉ show NEW
+render_account_details(df)

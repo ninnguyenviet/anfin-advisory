@@ -23,6 +23,7 @@ search_text = st.sidebar.text_input("Tìm kiếm (Tên, SĐT, User ID)")
 
 # Load data
 df = load_account_requests()
+df = df.reset_index(drop=True)
 
 # Apply filters
 if status_selected != "Tất cả":

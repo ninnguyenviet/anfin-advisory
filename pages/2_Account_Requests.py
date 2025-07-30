@@ -24,10 +24,11 @@ search_text = st.sidebar.text_input("Tìm kiếm (Tên, SĐT, User ID)")
 # Load data
 df = load_account_requests()
 
-# Reset index để tránh lỗi reindex
+# Reset index tuyệt đối để loại bỏ duplicate index
 df = df.reset_index(drop=True)
+df.index = range(len(df))
 
-# Đảm bảo cột 'status', 'source', 'display_name', 'phone_number', 'user_id' tồn tại
+# Đảm bảo các cột cần thiết tồn tại
 required_cols = ["status", "source", "display_name", "phone_number", "user_id"]
 for col in required_cols:
     if col not in df.columns:
@@ -47,18 +48,30 @@ if search_text:
         df["user_id"].fillna("").str.contains(search_text)
     ]
 
+# Reset lại index sau khi lọc để đảm bảo an toàn khi lọc bằng mask
+df = df.reset_index(drop=True)
+df.index = range(len(df))
+
 # Render Title
 st.markdown("""
     <h1 style='text-align: center; margin-bottom: 20px;'>Dashboard Quản lý Account Requests</h1>
 """, unsafe_allow_html=True)
 
-# ✅ METRICS CARDS - An toàn khi df rỗng hoặc thiếu cột
+# ✅ METRICS CARDS - xử lý an toàn 100%
 total = len(df)
 
 if not df.empty and "status" in df.columns:
-    new_count = len(df[df["status"] == "NEW"])
-    approved_count = len(df[df["status"] == "APPROVED"])
-    cancelled_count = len(df[df["status"] == "CANCELLED"])
+    mask_new = (df["status"] == "NEW")
+    mask_new.index = df.index
+    new_count = len(df[mask_new])
+
+    mask_approved = (df["status"] == "APPROVED")
+    mask_approved.index = df.index
+    approved_count = len(df[mask_approved])
+
+    mask_cancelled = (df["status"] == "CANCELLED")
+    mask_cancelled.index = df.index
+    cancelled_count = len(df[mask_cancelled])
 else:
     new_count = approved_count = cancelled_count = 0
 

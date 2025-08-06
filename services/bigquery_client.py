@@ -51,6 +51,7 @@ def load_seasons_from_bq():
             start_date, 
             end_date
         FROM `anfin-prod.raw_mysql.commodity_advisory_advisory_leaderboard_season`
+        where id != "season_1_id"
     """
     df = client.query(query).to_dataframe()
     return df
@@ -78,7 +79,7 @@ def load_season_data_new(season_id):
     client = bigquery.Client(credentials=credentials, project=credentials.project_id)
 
     query = """
-        SELECT user_id,leaderboard_id, full_name, user_type,total_lot,aum,total_earned_commission_fee,realized_pnl, rank, created_at   FROM `anfin-prod.raw_mysql.commodity_advisory_advisory_user_rank` 
+        SELECT user_id,leaderboard_id, full_name,registered_tnc_at, lot,lot_standard, transaction_fee,gross_pnl, net_pnl, total_lot_standard, rank   FROM `anfinx-prod.anfinx_advisory.anfinx_advisory_user_rank_by_data_vw` 
         WHERE leaderboard_id in ( @season_id)
     """
 

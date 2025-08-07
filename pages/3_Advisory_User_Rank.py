@@ -117,13 +117,16 @@ if season_ids:
 
     df["gross_pnl_fmt"] = df["gross_pnl"].astype("float64").apply(format_money)
     df["net_pnl_fmt"] = df["net_pnl"].astype("float64").apply(format_money)
-
+# registered_tnc_at, lot,lot_standard, transaction_fee,gross_pnl, net_pnl, total_lot_standard
     st.dataframe(
-        df[["leaderboard_id", "rank", "alias_name", "user_id", "lot", "gross_pnl_fmt", "net_pnl_fmt"]].rename(columns={
+        df[["leaderboard_id", "rank", "alias_name", "user_id","registered_tnc_at", "lot",  "lot_standard", "transaction_fee" ,"gross_pnl_fmt", "net_pnl_fmt"]].rename(columns={
             "leaderboard_id": "Season",
             "rank": "Hạng",
             "alias_name": "Tên",
             "user_id": "User ID",
+            "registered_tnc_at": "Ngày đăng ký",
+            "transaction_fee": "Phí giao dịch",
+            "lot_standard": "Lot chuẩn",
             "lot": "Lot",
             "gross_pnl_fmt": "Gross PnL",
             "net_pnl_fmt": "Net PnL"

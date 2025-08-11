@@ -108,15 +108,21 @@ if season_ids:
     def format_money(val):
         if pd.isna(val):
             return "-"
-        elif abs(val) >= 1e9:
-            return f"{val/1e9:.2f} tỷ"
-        elif abs(val) >= 1e6:
-            return f"{val/1e6:.1f} triệu"
+        
+        abs_val = abs(val)
+        
+        if abs_val >= 1e9:
+            return f"{val / 1e9:,.2f} tỷ"
+        elif abs_val >= 1e6:
+            return f"{val / 1e6:,.1f} triệu"
+        elif abs_val >= 1e3:
+            return f"{val / 1e3:,.0f} nghìn"
         else:
             return f"{val:,.0f}"
 
     df["gross_pnl_fmt"] = df["gross_pnl"].astype("float64").apply(format_money)
     df["net_pnl_fmt"] = df["net_pnl"].astype("float64").apply(format_money)
+    df["transaction_fee"] = df["transaction_fee"].astype("float64").apply(format_money)
 # registered_tnc_at, lot,lot_standard, transaction_fee,gross_pnl, net_pnl, total_lot_standard
     st.dataframe(
         df[["leaderboard_id", "rank", "alias_name", "user_id","registered_tnc_at", "lot",  "lot_standard", "transaction_fee" ,"gross_pnl_fmt", "net_pnl_fmt"]].rename(columns={

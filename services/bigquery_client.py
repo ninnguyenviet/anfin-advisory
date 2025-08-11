@@ -91,3 +91,71 @@ def load_season_data_new(season_id):
 
     df = client.query(query, job_config=job_config).to_dataframe()
     return df
+
+
+def load_all_kpi_view(month) -> pd.DataFrame:
+    credentials = service_account.Credentials.from_service_account_info(
+        st.secrets["google_service_account"]
+    )
+    client = bigquery.Client(credentials=credentials, project=credentials.project_id)
+
+    query = """
+        SELECT * FROM `anfinx-prod.anfinx_advisory.anfinx_advisory_all_kpi_data_vw`
+        WHERE month in ( @month)
+    """
+
+    job_config = bigquery.QueryJobConfig(
+        query_parameters=[
+            bigquery.ScalarQueryParameter("month", "Date", month)
+        ]
+    )
+    df = client.query(query).to_dataframe()
+    return df
+
+
+
+
+VIEW_FQN = "anfinx-prod.anfinx_advisory.anfinx_advisory_all_kpi_data_vw"
+
+def _bq_client():
+    credentials = service_account.Credentials.from_service_account_info(
+        st.secrets["google_service_account"]
+    )
+    return bigquery.Client(credentials=credentials, project=credentials.project_id)
+
+def load_advisory_dims():
+    """
+    Lấy danh sách month, type (nhẹ) để build filter & nhận diện kiểu dữ liệu của month.
+    """
+    client = _bq_client()
+    q = f"SELECT DISTINCT month, type FROM `anfinx-prod.anfinx_advisory.anfinx_advisory_all_kpi_data_vw`"
+    return client.query(q).to_dataframe()
+
+def load_advisory_commission_data(months=None, types=None, month_is_date: bool | None = None) -> pd.DataFrame:
+    """
+    Tải dữ liệu chính theo bộ lọc.
+    - months: list[date] nếu month_is_date=True, ngược lại list[str]
+    - types:  list[str]
+    - month_is_date: None -> bỏ WHERE month (load all); True/False -> filter theo đúng kiểu
+    """
+    client = _bq_client()
+
+    where = []
+    params = []
+
+    if month_is_date is not None and months:
+        where.append("month IN UNNEST(@months)")
+        if month_is_date:
+            params.append(bigquery.ArrayQueryParameter("months", "DATE", months))
+        else:
+            params.append(bigquery.ArrayQueryParameter("months", "STRING", months))
+
+    if types:
+        where.append("type IN UNNEST(@types)")
+        params.append(bigquery.ArrayQueryParameter("types", "STRING", types))
+
+    where_sql = ("WHERE " + " AND ".join(where)) if where else ""
+    q = f"SELECT * FROM `{VIEW_FQN}` {where_sql}"
+
+    job_config = bigquery.QueryJobConfig(query_parameters=params or None)
+    return client.query(q, job_config=job_config).to_dataframe()

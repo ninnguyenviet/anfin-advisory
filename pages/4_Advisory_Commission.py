@@ -156,7 +156,7 @@ if {"tkcv", "tkcv_name"}.issubset(df.columns):
     rename = {" month": "Month", "tkcv": "Mã TKCV", "tkcv_name": "Chuyên viên", "tknlk": "Mã TKNLK", "tknlk_name": "Người liên kết",
               "lot_standard": "Tổng Lot chuẩn", "transaction_fee_fmt": "Tổng Phí GD", "actual_profit_VND_fmt": "Lãi/lỗ thực tế",  "commission_fmt": "Hoa hồng TKCV"}
     st.dataframe(cv_sum[cols].rename(columns=rename), use_container_width=True, hide_index=True)
-    st.download_button("Tải CSV - Hoa hồng Chuyên viên", data=cv_sum_csv.to_csv(index=False).encode("utf-8"),
+    st.download_button("Tải CSV - Hoa hồng Chuyên viên", data=cv_sum_csv.to_csv(index=False).encode("utf-8-sig"),
                        file_name="commission_tkcv.csv", mime="text/csv")
 else:
     st.caption("⚠️ Không thấy cột tkcv/tkcv_name trong dữ liệu.")
@@ -186,7 +186,7 @@ if {"tknlk", "tknlk_name"}.issubset(df.columns):
     rename = {"tknlk": "Mã TKNLK", "tknlk_name": "Người liên kết", "month": "Month",
               "lot_standard": "Tổng Lot chuẩn", "transaction_fee_fmt": "Tổng Phí GD", "commission_fmt": "Hoa hồng TKNLK"}
     st.dataframe(nlk_sum[cols].rename(columns=rename), use_container_width=True, hide_index=True)
-    st.download_button("Tải CSV - Hoa hồng Người liên kết", data=nlk_sum_csv.to_csv(index=False).encode("utf-8"),
+    st.download_button("Tải CSV - Hoa hồng Người liên kết", data=nlk_sum_csv.to_csv(index=False).encode("utf-8-sig"),
                        file_name="commission_tknlk.csv", mime="text/csv")
 else:
     st.caption("⚠️ Không thấy cột tknlk/tknlk_name trong dữ liệu.")
@@ -220,7 +220,7 @@ if {"investor_code", "investor_name"}.issubset(df.columns):
               "commission_fmt": "Tổng Hoa hồng"}
     inv_sum = inv_sum.sort_values(by="commission_total", ascending=False)
     st.dataframe(inv_sum[cols].rename(columns=rename), use_container_width=True, hide_index=True)
-    st.download_button("Tải CSV - Chi tiết theo Investor", data=df.to_csv(index=False).encode("utf-8"),
+    st.download_button("Tải CSV - Chi tiết theo Investor", data=df.to_csv(index=False).encode("utf-8-sig"),
                        file_name="investor_summary.csv", mime="text/csv")
 else:
     st.caption("⚠️ Không thấy cột investor_code/investor_name trong dữ liệu.")

@@ -1,11 +1,14 @@
 # pages/4_Commission.py
+import sys
+import os
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import streamlit as st
 import pandas as pd
 from datetime import datetime, date
 import pytz
 import pandas.api.types as ptypes
 
-from services.bigquery_client import  load_advisory_dims,load_advisory_commission_data
+from services.bigquery_client  import  load_advisory_dims,load_advisory_commission_data
 
 st.set_page_config(page_title="Advisory Commission", page_icon="💸", layout="wide")
 st.markdown("# 💸 Advisory Commission Dashboard")
@@ -21,7 +24,7 @@ def fmt_money(val):
     if a >= 1e3: return f"{val/1e3:,.0f} nghìn"
     return f"{val:,.0f}"
 
-@st.cache_data(ttl=600)
+# @st.cache_data(ttl=600)
 def _load_dims_cached():
     return load_advisory_dims()
 
@@ -31,7 +34,7 @@ def _load_data_cached(months, types, month_is_date):
 
 # ---------- Build filters ----------
 with st.spinner("Đang tải bộ lọc..."):
-    dims = _load_dims_cached()
+    dims = load_advisory_dims()
 
 if dims.empty:
     st.info("Không có dữ liệu trong view.")
@@ -88,7 +91,7 @@ for lbl in selected_month_labels:
     selected_month_values.extend(label_to_values.get(lbl, []))
 
 with st.spinner("Đang tải dữ liệu..."):
-    df = _load_data_cached(selected_month_values if selected_month_values else None,
+    df = load_advisory_commission_data(selected_month_values if selected_month_values else None,
                            selected_types if selected_types else None,
                            month_is_date if selected_month_values else None)
 

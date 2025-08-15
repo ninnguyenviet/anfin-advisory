@@ -73,7 +73,7 @@ else:
 
 # Options type — mặc định: ALL (chọn hết)
 type_options = sorted(dims["type"].dropna().astype(str).unique()) if "type" in dims.columns else []
-default_types = type_options.copy()  # ALL
+default_types = ["Advisory"] if "Advisory" in type_options else type_options.copy()
 
 st.markdown("### Bộ lọc")
 c1, c2, c3 = st.columns([2, 2, 2])

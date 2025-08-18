@@ -72,20 +72,27 @@ if season_ids:
         rank = idx + 1
         ratio = reward_split[idx]
         amount = round(reward_pool * ratio)
-        # status = "Được nhận" if row.net_pnl > 0 else "Cộng dồn tháng sau"
+        status = "Được nhận" if row.net_pnl > 0 and row.registered_tnc_at is None and row.mode  == "PUBLIC" else "Cộng dồn tháng sau"
+        reason = (
+            "Khách bị lỗ" if row.actual_profit_VND - row.transaction_fee < 0
+            else "Chưa TnC" if row.registered_tnc_at is None
+            else "Đang bật ẩn danh" if row.mode == "PRIVATE"
+            else None
+        )
+
         if row.net_pnl > 0:
             bonus_given += amount
         bonuses.append({
             "Hạng": f"🥇 TOP {rank}" if rank == 1 else f"🥈 TOP {rank}" if rank == 2 else f"🥉 TOP {rank}",
-            "User ID": row["user_id"],
-            "Họ tên": row["full_name"],
+            "User ID": row.user_id,
+            "Họ tên": row.full_name,
             "Tên giải thưởng": "Chiến Thần Lot",
-            "Tổng Lot": row["lot_standard"],
+            "Tổng Lot": row.lot_standard,
             "Tiền thưởng (VNĐ)": f"{amount:,.0f}",
-            "Điều kiện nhận thưởng": row["reward_condition"],
-            "Lý do": row["reason"],
-        })
+            "Điều kiện nhận thưởng": status,
+            "Lý do": reason
 
+        })
 
     df_top3_final = pd.DataFrame(bonuses)
 
@@ -106,7 +113,7 @@ if season_ids:
     st.dataframe(df_top3_final, use_container_width=True, hide_index=True)
 
     st.markdown("## 📋 Bảng chi tiết tất cả User")
-
+    
     def format_money(val):
         if pd.isna(val):
             return "-"

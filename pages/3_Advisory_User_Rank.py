@@ -90,7 +90,7 @@ if season_ids:
         reason = (
             "Khách bị lỗ" if r.get("net_pnl", 0) < 0
             else "Chưa TnC" if pd.isnull(r.get("registered_tnc_at"))
-            else "Đang bật ẩn danh" if r.get("mode") == "PRIVATE"
+            else "Đang bật ẩn danh" if r.get("mode") != "PUBLIC"
             else None
         )
 

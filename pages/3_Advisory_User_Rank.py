@@ -72,7 +72,7 @@ if season_ids:
         rank = idx + 1
         ratio = reward_split[idx]
         amount = round(reward_pool * ratio)
-        status = "Được nhận" if row.net_pnl > 0 else "Cộng dồn tháng sau"
+        # status = "Được nhận" if row.net_pnl > 0 else "Cộng dồn tháng sau"
         if row.net_pnl > 0:
             bonus_given += amount
         bonuses.append({
@@ -82,23 +82,24 @@ if season_ids:
             "Tên giải thưởng": "Chiến Thần Lot",
             "Tổng Lot": row.lot_standard,
             "Tiền thưởng (VNĐ)": f"{amount:,.0f}",
-            "Điều kiện nhận thưởng": status
+            "Điều kiện nhận thưởng": row.type,
+            "Lý do": row.reason,
         })
 
     df_top3_final = pd.DataFrame(bonuses)
 
     kpi_num_seasons = df["leaderboard_id"].nunique()
     kpi_num_users = df["user_id"].nunique()
-    kpi_total_lot = df["lot_standard"].sum()
+    # kpi_total_lot = df["lot_standard"].sum()
 
     st.markdown("## KPIs Tổng quan")
-    col1, col2, col3, col4, col5, col6 = st.columns(6)
+    col1, col2, col3, col4, col5 = st.columns(5)
     col1.metric("Số Season", kpi_num_seasons)
     col2.metric("Số User tham gia", kpi_num_users)
-    col3.metric("Tổng Lots", f"{kpi_total_lot:,.2f}")
-    col4.metric("Tổng Lot của tháng", f"{total_lot_month:,.2f}")
-    col5.metric("Tiền thưởng có thể nhận (VNĐ)", f"{bonus_given:,.0f}")
-    col6.metric("Tiền chưa chi trả (VNĐ)", f"{reward_pool - bonus_given:,.0f}")
+    # col3.metric("Tổng Lots", f"{kpi_total_lot:,.2f}")
+    col3.metric("Tổng Lot của tháng", f"{total_lot_month:,.2f}")
+    col4.metric("Tiền thưởng có thể nhận (VNĐ)", f"{bonus_given:,.0f}")
+    col5.metric("Tiền chưa chi trả (VNĐ)", f"{reward_pool - bonus_given:,.0f}")
 
     st.markdown("## 🏅 Top 3 User tháng hiện tại")
     st.dataframe(df_top3_final, use_container_width=True, hide_index=True)

@@ -82,7 +82,7 @@ if season_ids:
             "Tên giải thưởng": "Chiến Thần Lot",
             "Tổng Lot": row.lot_standard,
             "Tiền thưởng (VNĐ)": f"{amount:,.0f}",
-            "Điều kiện nhận thưởng": row.type,
+            "Điều kiện nhận thưởng": row.reward_condition,
             "Lý do": row.reason,
         })
 

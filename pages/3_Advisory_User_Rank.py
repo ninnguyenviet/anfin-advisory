@@ -155,7 +155,7 @@ if season_ids:
             "rank": "Hạng",
             "alias_name": "Tên",
             "user_id": "User ID",
-            "hidden_mode_activated_at": "Ngày bật ẩn danh",
+            "hidden_mode_activated_at": "Ngày tắt ẩn danh",
             "registered_tnc_at": "Ngày đăng ký",
             "transaction_fee_fmt": "Phí giao dịch",
             "lot_standard": "Lot chuẩn",

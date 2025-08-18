@@ -26,7 +26,10 @@ season_name_options = list(season_name_map.keys())
 
 # Mặc định chọn season hiện tại
 now = datetime.today()
-default_season = seasons_df[(seasons_df["start_date"].dt.month == now.month) & (seasons_df["start_date"].dt.year == now.year)]
+default_season = seasons_df[
+    (seasons_df["start_date"].dt.month == now.month) &
+    (seasons_df["start_date"].dt.year == now.year)
+]
 default_index = season_name_options.index(default_season["name"].iloc[0]) if not default_season.empty else 0
 
 selected_season_name = st.selectbox("Chọn Season:", options=season_name_options, index=default_index)
@@ -48,6 +51,7 @@ if season_ids:
     previous_bonus_pool = 0
     reward_split = [0.5, 0.3, 0.2]
 
+    # Cộng dồn thưởng từ các season trước
     if season_index > 0:
         for idx in range(1, season_index + 1):
             season_id = seasons_df.iloc[season_index - idx]["id"]
@@ -56,55 +60,64 @@ if season_ids:
                 df_prev = df_prev.sort_values(by="lot_standard", ascending=False).head(3)
                 total_lot_prev = df_prev["total_lot_standard"].max()
                 pool = total_lot_prev * 10000
-                for i, row in enumerate(df_prev.itertuples()):
-                    if row.net_pnl <= 0:
+                for i, row_prev in enumerate(df_prev.itertuples()):
+                    if row_prev.net_pnl <= 0:
                         previous_bonus_pool += round(pool * reward_split[i])
 
     total_lot_month = df["total_lot_standard"].max()
     current_reward_pool = round(total_lot_month * 10000)
     reward_pool = current_reward_pool + previous_bonus_pool
 
+    # Tính thưởng cho top 3
     df_top3 = df.sort_values(by="lot_standard", ascending=False).head(3)
 
     bonuses = []
     bonus_given = 0
     for idx, row in enumerate(df_top3.itertuples()):
+        r = row._asdict()  # convert sang dict để tránh lỗi thuộc tính
         rank = idx + 1
         ratio = reward_split[idx]
         amount = round(reward_pool * ratio)
-        status = "Được nhận" if row.net_pnl > 0 and row.registered_tnc_at is None and row.mode  == "PUBLIC" else "Cộng dồn tháng sau"
+
+        status = (
+            "Được nhận"
+            if r.get("net_pnl", 0) > 0
+            and pd.notnull(r.get("registered_tnc_at"))
+            and r.get("mode") == "PUBLIC"
+            else "Cộng dồn tháng sau"
+        )
+
         reason = (
-            "Khách bị lỗ" if row.net_pnl < 0
-            else "Chưa TnC" if row.registered_tnc_at is None
-            else "Đang bật ẩn danh" if row.mode == "PRIVATE"
+            "Khách bị lỗ" if r.get("net_pnl", 0) < 0
+            else "Chưa TnC" if pd.isnull(r.get("registered_tnc_at"))
+            else "Đang bật ẩn danh" if r.get("mode") == "PRIVATE"
             else None
         )
 
-        if row.net_pnl > 0:
+        if r.get("net_pnl", 0) > 0 and status == "Được nhận":
             bonus_given += amount
+
         bonuses.append({
             "Hạng": f"🥇 TOP {rank}" if rank == 1 else f"🥈 TOP {rank}" if rank == 2 else f"🥉 TOP {rank}",
-            "User ID": row.user_id,
-            "Họ tên": row.full_name,
+            "User ID": r.get("user_id"),
+            "Họ tên": r.get("full_name"),
             "Tên giải thưởng": "Chiến Thần Lot",
-            "Tổng Lot": row.lot_standard,
+            "Tổng Lot": r.get("lot_standard"),
             "Tiền thưởng (VNĐ)": f"{amount:,.0f}",
             "Điều kiện nhận thưởng": status,
             "Lý do": reason
-
         })
 
     df_top3_final = pd.DataFrame(bonuses)
 
+    # KPIs
     kpi_num_seasons = df["leaderboard_id"].nunique()
     kpi_num_users = df["user_id"].nunique()
-    # kpi_total_lot = df["lot_standard"].sum()
 
     st.markdown("## KPIs Tổng quan")
     col1, col2, col3, col4, col5 = st.columns(5)
     col1.metric("Số Season", kpi_num_seasons)
     col2.metric("Số User tham gia", kpi_num_users)
-    # col3.metric("Tổng Lots", f"{kpi_total_lot:,.2f}")
     col3.metric("Tổng Lot của tháng", f"{total_lot_month:,.2f}")
     col4.metric("Tiền thưởng có thể nhận (VNĐ)", f"{bonus_given:,.0f}")
     col5.metric("Tiền chưa chi trả (VNĐ)", f"{reward_pool - bonus_given:,.0f}")
@@ -112,14 +125,13 @@ if season_ids:
     st.markdown("## 🏅 Top 3 User tháng hiện tại")
     st.dataframe(df_top3_final, use_container_width=True, hide_index=True)
 
+    # Chi tiết toàn bộ user
     st.markdown("## 📋 Bảng chi tiết tất cả User")
-    
+
     def format_money(val):
         if pd.isna(val):
             return "-"
-        
         abs_val = abs(val)
-        
         if abs_val >= 1e9:
             return f"{val / 1e9:,.2f} tỷ"
         elif abs_val >= 1e6:
@@ -131,16 +143,20 @@ if season_ids:
 
     df["gross_pnl_fmt"] = df["gross_pnl"].astype("float64").apply(format_money)
     df["net_pnl_fmt"] = df["net_pnl"].astype("float64").apply(format_money)
-    df["transaction_fee"] = df["transaction_fee"].astype("float64").apply(format_money)
-# registered_tnc_at, lot,lot_standard, transaction_fee,gross_pnl, net_pnl, total_lot_standard
+    df["transaction_fee_fmt"] = df["transaction_fee"].astype("float64").apply(format_money)
+
     st.dataframe(
-        df[["leaderboard_id", "rank", "alias_name", "user_id","registered_tnc_at", "lot",  "lot_standard", "transaction_fee" ,"gross_pnl_fmt", "net_pnl_fmt"]].rename(columns={
+        df[[
+            "leaderboard_id", "rank", "alias_name", "user_id",
+            "registered_tnc_at", "lot", "lot_standard",
+            "transaction_fee_fmt", "gross_pnl_fmt", "net_pnl_fmt"
+        ]].rename(columns={
             "leaderboard_id": "Season",
             "rank": "Hạng",
             "alias_name": "Tên",
             "user_id": "User ID",
             "registered_tnc_at": "Ngày đăng ký",
-            "transaction_fee": "Phí giao dịch",
+            "transaction_fee_fmt": "Phí giao dịch",
             "lot_standard": "Lot chuẩn",
             "lot": "Lot",
             "gross_pnl_fmt": "Gross PnL",
@@ -150,6 +166,7 @@ if season_ids:
         hide_index=True
     )
 
+    # Xuất CSV
     csv = df.to_csv(index=False).encode("utf-8")
     st.download_button(
         label="Tải dữ liệu CSV",

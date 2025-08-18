@@ -77,14 +77,15 @@ if season_ids:
             bonus_given += amount
         bonuses.append({
             "Hạng": f"🥇 TOP {rank}" if rank == 1 else f"🥈 TOP {rank}" if rank == 2 else f"🥉 TOP {rank}",
-            "User ID": row.user_id,
-            "Họ tên": row.full_name,
+            "User ID": row["user_id"],
+            "Họ tên": row["full_name"],
             "Tên giải thưởng": "Chiến Thần Lot",
-            "Tổng Lot": row.lot_standard,
+            "Tổng Lot": row["lot_standard"],
             "Tiền thưởng (VNĐ)": f"{amount:,.0f}",
-            "Điều kiện nhận thưởng": row.reward_condition,
-            "Lý do": row.reason,
+            "Điều kiện nhận thưởng": row["reward_condition"],
+            "Lý do": row["reason"],
         })
+
 
     df_top3_final = pd.DataFrame(bonuses)
 

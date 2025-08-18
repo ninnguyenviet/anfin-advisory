@@ -83,14 +83,14 @@ if season_ids:
             "Được nhận"
             if r.get("net_pnl", 0) > 0
             and pd.notnull(r.get("registered_tnc_at"))
-            and r.get("mode") == "PUBLIC"
+            and pd.notnull(r.get("hidden_mode_activated_at"))
             else "Cộng dồn tháng sau"
         )
 
         reason = (
             "Khách bị lỗ" if r.get("net_pnl", 0) < 0
             else "Chưa TnC" if pd.isnull(r.get("registered_tnc_at"))
-            else "Đang bật ẩn danh" if r.get("mode") != "PUBLIC"
+            else "Đang bật ẩn danh" if pd.isnull(r.get("hidden_mode_activated_at")) 
             else None
         )
 
@@ -147,7 +147,7 @@ if season_ids:
 
     st.dataframe(
         df[[
-            "leaderboard_id", "rank", "alias_name", "user_id","mode",
+            "leaderboard_id", "rank", "alias_name", "user_id","hidden_mode_activated_at",
             "registered_tnc_at", "lot", "lot_standard",
             "transaction_fee_fmt", "gross_pnl_fmt", "net_pnl_fmt"
         ]].rename(columns={
@@ -155,7 +155,7 @@ if season_ids:
             "rank": "Hạng",
             "alias_name": "Tên",
             "user_id": "User ID",
-            "mode": "Chế độ",
+            "hidden_mode_activated_at": "Ngày bật ẩn danh",
             "registered_tnc_at": "Ngày đăng ký",
             "transaction_fee_fmt": "Phí giao dịch",
             "lot_standard": "Lot chuẩn",

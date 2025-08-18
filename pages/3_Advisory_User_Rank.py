@@ -74,7 +74,7 @@ if season_ids:
         amount = round(reward_pool * ratio)
         status = "Được nhận" if row.net_pnl > 0 and row.registered_tnc_at is None and row.mode  == "PUBLIC" else "Cộng dồn tháng sau"
         reason = (
-            "Khách bị lỗ" if row.actual_profit_VND - row.transaction_fee < 0
+            "Khách bị lỗ" if row.net_pnl < 0
             else "Chưa TnC" if row.registered_tnc_at is None
             else "Đang bật ẩn danh" if row.mode == "PRIVATE"
             else None

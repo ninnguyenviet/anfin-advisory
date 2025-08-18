@@ -147,7 +147,7 @@ if season_ids:
 
     st.dataframe(
         df[[
-            "leaderboard_id", "rank", "alias_name", "user_id",
+            "leaderboard_id", "rank", "alias_name", "user_id","mode",
             "registered_tnc_at", "lot", "lot_standard",
             "transaction_fee_fmt", "gross_pnl_fmt", "net_pnl_fmt"
         ]].rename(columns={
@@ -155,6 +155,7 @@ if season_ids:
             "rank": "Hạng",
             "alias_name": "Tên",
             "user_id": "User ID",
+            "mode": "Chế độ",
             "registered_tnc_at": "Ngày đăng ký",
             "transaction_fee_fmt": "Phí giao dịch",
             "lot_standard": "Lot chuẩn",

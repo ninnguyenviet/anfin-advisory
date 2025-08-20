@@ -44,7 +44,6 @@ if season_ids:
         st.info("Không có dữ liệu.")
         st.stop()
 
-    df["alias_name"] = df["full_name"]
 
     current_season_id = season_ids[0]
     season_index = seasons_df[seasons_df["id"] == current_season_id].index[0]
@@ -83,14 +82,14 @@ if season_ids:
             "Được nhận"
             if r.get("net_pnl", 0) > 0
             and pd.notnull(r.get("registered_tnc_at"))
-            and pd.notnull(r.get("hidden_mode_activated_at"))
+            and r.get("mode") == "PUBLIC" 
             else "Cộng dồn tháng sau"
         )
 
         reason = (
             "Khách bị lỗ" if r.get("net_pnl", 0) < 0
             else "Chưa TnC" if pd.isnull(r.get("registered_tnc_at"))
-            else "Đang bật ẩn danh" if pd.isnull(r.get("hidden_mode_activated_at")) 
+            else "Đang bật ẩn danh" if r.get("mode") == "PRIVATE"
             else None
         )
 
@@ -147,15 +146,18 @@ if season_ids:
 
     st.dataframe(
         df[[
-            "leaderboard_id", "rank", "alias_name", "user_id","hidden_mode_activated_at",
+            "leaderboard_id", "rank", "full_name", "user_id","hidden_mode_activated_at",
             "registered_tnc_at", "lot", "lot_standard",
+            "mode", "alias_name", 
             "transaction_fee_fmt", "gross_pnl_fmt", "net_pnl_fmt"
         ]].rename(columns={
             "leaderboard_id": "Season",
             "rank": "Hạng",
-            "alias_name": "Tên",
+            "full_name": "Tên",
             "user_id": "User ID",
-            "hidden_mode_activated_at": "Ngày tắt ẩn danh",
+            "alias_name": "Tên hiển thị",
+            "hidden_mode_activated_at": "Ngày bật ẩn danh",
+            "mode": "Chế độ",
             "registered_tnc_at": "Ngày đăng ký",
             "transaction_fee_fmt": "Phí giao dịch",
             "lot_standard": "Lot chuẩn",

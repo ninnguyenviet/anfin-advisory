@@ -146,9 +146,8 @@ if season_ids:
 
     st.dataframe(
         df[[
-            "leaderboard_id", "rank", "full_name", "user_id","hidden_mode_activated_at",
+            "leaderboard_id", "rank", "full_name", "user_id",   "alias_name",     "hidden_mode_activated_at", "mode",
             "registered_tnc_at", "lot", "lot_standard",
-            "mode", "alias_name", 
             "transaction_fee_fmt", "gross_pnl_fmt", "net_pnl_fmt"
         ]].rename(columns={
             "leaderboard_id": "Season",

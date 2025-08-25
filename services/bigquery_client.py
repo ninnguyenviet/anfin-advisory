@@ -27,7 +27,7 @@ def load_account_requests():
     expanded = df_raw["data"].apply(lambda x: json.loads(x))
     expanded_df = pd.json_normalize(expanded)
     expanded_df.columns = [col.replace(".", "_") for col in expanded_df.columns]
-    expanded_df = expanded_df.drop(columns=["user_id", "email", "source"], errors="ignore")
+    expanded_df = expanded_df.drop(columns=["user_id", "email", "source", "status"], errors="ignore")
     df = pd.concat([df_raw.drop(columns=["data"]), expanded_df], axis=1)
     df.sort_values(by="created_at", ascending=False, inplace=True)
     return df

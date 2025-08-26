@@ -1,5 +1,3 @@
-# pages/2_Account_Requests.py
-
 import streamlit as st
 import pandas as pd
 from services.bigquery_client import load_account_requests
@@ -26,16 +24,16 @@ df = load_account_requests()
 
 # Apply filters
 if status_selected != "Tất cả":
-    df = df[df["status"] == status_selected]
+    df = df[df.get("status") == status_selected]
 
 if source_selected != "Tất cả":
-    df = df[df["source"] == source_selected]
+    df = df[df.get("source") == source_selected]
 
 if search_text:
     df = df[
-        df["display_name"].fillna("").str.contains(search_text, case=False) |
-        df["phone_number"].fillna("").str.contains(search_text) |
-        df["user_id"].fillna("").str.contains(search_text)
+        df.get("display_name", pd.Series(dtype=str)).fillna("").str.contains(search_text, case=False) |
+        df.get("phone_number", pd.Series(dtype=str)).fillna("").str.contains(search_text) |
+        df.get("user_id", pd.Series(dtype=str)).fillna("").str.contains(search_text)
     ]
 
 # Render Title
@@ -43,15 +41,13 @@ st.markdown("""
     <h1 style='text-align: center; margin-bottom: 20px;'>Dashboard Quản lý Account Requests</h1>
 """, unsafe_allow_html=True)
 
-# ✅ ADD METRICS CARDS
+# ✅ Metrics cards
 total = len(df)
-new_count = len(df[df["status"] == "NEW"])
-approved_count = len(df[df["status"] == "APPROVED"])
-cancelled_count = len(df[df["status"] == "CANCELLED"])
-# tạo 3 cột cho Lots căn giữa
-col_space, col1, col2, col3, col4, col_space2 = st.columns([4.5, 3, 3, 3, 3, 3])
+new_count = (df.get("status") == "NEW").sum()
+approved_count = (df.get("status") == "APPROVED").sum()
+cancelled_count = (df.get("status") == "CANCELLED").sum()
 
-# col1, col2, col3, col4 = st.columns(4)
+col_space, col1, col2, col3, col4, col_space2 = st.columns([4.5, 3, 3, 3, 3, 3])
 col1.metric("🧑‍💻 Tổng số Account", total)
 col2.metric("🟡 Chờ duyệt (NEW)", new_count)
 col3.metric("✅ Đã duyệt (APPROVED)", approved_count)
@@ -65,4 +61,4 @@ render_account_table(df)
 st.markdown("---")
 
 # Render Detail Viewer chỉ show NEW
-render_account_details(df)
+render_account_details(df[df.get("status") == "NEW"])

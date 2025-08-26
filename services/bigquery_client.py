@@ -5,10 +5,8 @@ from google.oauth2 import service_account
 
 import streamlit as st
 
-
-
 def load_account_requests():
-   # Lấy thông tin credentials từ streamlit secrets
+    # Lấy thông tin credentials từ streamlit secrets
     credentials = service_account.Credentials.from_service_account_info(
         st.secrets["google_service_account"]
     )
@@ -16,22 +14,28 @@ def load_account_requests():
     # Khởi tạo BigQuery client
     client = bigquery.Client(credentials=credentials, project=credentials.project_id)
 
-
     query = """
-       SELECT * FROM `anfinx-prod.anfinx_advisory.commodity_advisory_account_request_dashboard_vw`
+       SELECT * 
+       FROM `anfinx-prod.anfinx_advisory.commodity_advisory_account_request_dashboard_vw`
     """
-
     df_raw = client.query(query).to_dataframe()
 
-    # Expand JSON
+
     expanded = df_raw["data"].apply(lambda x: json.loads(x))
     expanded_df = pd.json_normalize(expanded)
     expanded_df.columns = [col.replace(".", "_") for col in expanded_df.columns]
-    expanded_df = expanded_df[["avatar_url", "bio", "display_name", "highlights", "phone_number"]]
-    df = pd.concat([df_raw.drop(columns=["data"]), expanded_df], axis=1)
-    df.sort_values(by="created_at", ascending=False, inplace=True)
-    return df
 
+    expanded_df = expanded_df[["avatar_url", "bio", "display_name", "highlights", "phone_number"]]
+
+    df = pd.concat([df_raw.drop(columns=["data"]), expanded_df], axis=1)
+
+    df = df.loc[:, ~df.columns.duplicated()]
+
+    df = df.reset_index(drop=True)
+
+    df = df.sort_values(by="created_at", ascending=False)
+
+    return df
 # -------------------------------------------------
 def load_seasons_from_bq():
     

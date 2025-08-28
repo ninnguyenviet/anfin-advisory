@@ -25,7 +25,7 @@ def load_account_requests():
     expanded_df.columns = [col.replace(".", "_") for col in expanded_df.columns]
 
     # Chỉ lấy các field cần
-    need_cols = ["avatar_url", "bio", "display_name", "highlights", "phone_number"]
+    need_cols = ["avatar_url", "bio", "display_name", "group_name", "highlights", "phone_number"]
     expanded_df = expanded_df.reindex(columns=need_cols, fill_value=pd.NA)
 
     # Kết hợp lại

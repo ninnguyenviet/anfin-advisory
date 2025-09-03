@@ -3,9 +3,6 @@ import pandas as pd
 from datetime import datetime
 from services.bigquery_client import load_seasons_from_bq, load_season_data_new
 
-# =========================
-# Streamlit page config
-# =========================
 st.set_page_config(
     page_title="Advisory User Rank",
     page_icon="🏆",
@@ -13,9 +10,7 @@ st.set_page_config(
 )
 st.markdown("# 🏆 Advisory User Rank Dashboard")
 
-# =========================
-# Helpers
-# =========================
+
 def format_money(val):
     if pd.isna(val):
         return "-"
@@ -264,27 +259,36 @@ df_current["gross_pnl_fmt"] = df_current["gross_pnl"].astype("float64").apply(fo
 df_current["net_pnl_fmt"] = df_current["net_pnl"].astype("float64").apply(format_money)
 df_current["transaction_fee_fmt"] = df_current["transaction_fee"].astype("float64").apply(format_money)
 
+# Các cột cần hiển thị
+columns_to_show = [
+    "leaderboard_id", "rank", "full_name", "user_id", "tkcv", "alias_name",
+    "hidden_mode_activated_at", "mode", "registered_tnc_at", "lot", "lot_standard",
+    "transaction_fee_fmt", "gross_pnl_fmt", "net_pnl_fmt"
+]
+
+# Lọc ra các cột thực sự tồn tại trong df_current
+available_cols = [c for c in columns_to_show if c in df_current.columns]
+
+# Mapping tên cột sang tiếng Việt
+col_mapping = {
+    "leaderboard_id": "Season",
+    "rank": "Hạng",
+    "full_name": "Tên",
+    "user_id": "User ID",
+    "tkcv": "Tài khoản CV",
+    "alias_name": "Tên hiển thị",
+    "hidden_mode_activated_at": "Ngày bật ẩn danh",
+    "mode": "Chế độ",
+    "registered_tnc_at": "Ngày đăng ký",
+    "transaction_fee_fmt": "Phí giao dịch",
+    "lot_standard": "Lot chuẩn",
+    "lot": "Lot",
+    "gross_pnl_fmt": "Gross PnL",
+    "net_pnl_fmt": "Net PnL"
+}
+
 st.dataframe(
-    df_current[[
-        "leaderboard_id", "rank", "full_name", "user_id","tkcv", "alias_name", "hidden_mode_activated_at", "mode",
-        "registered_tnc_at", "lot", "lot_standard",
-        "transaction_fee_fmt", "gross_pnl_fmt", "net_pnl_fmt"
-    ]].rename(columns={
-        "leaderboard_id": "Season",
-        "rank": "Hạng",
-        "full_name": "Tên",
-        "user_id": "User ID",
-        "tkcv": "Tài khoản CV",
-        "alias_name": "Tên hiển thị",
-        "hidden_mode_activated_at": "Ngày bật ẩn danh",
-        "mode": "Chế độ",
-        "registered_tnc_at": "Ngày đăng ký",
-        "transaction_fee_fmt": "Phí giao dịch",
-        "lot_standard": "Lot chuẩn",
-        "lot": "Lot",
-        "gross_pnl_fmt": "Gross PnL",
-        "net_pnl_fmt": "Net PnL"
-    }),
+    df_current[available_cols].rename(columns=col_mapping),
     use_container_width=True,
     hide_index=True
 )

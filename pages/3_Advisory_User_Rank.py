@@ -77,15 +77,12 @@ if seasons_df.empty:
 seasons_df["start_date"] = pd.to_datetime(seasons_df["start_date"])
 seasons_df["end_date"] = pd.to_datetime(seasons_df["end_date"])
 
+
 # Sắp xếp season theo thời gian để cộng dồn chuẩn
 seasons_df = seasons_df.sort_values(by=["start_date", "id"]).reset_index(drop=True)
-seasons_df["date"] = pd.to_datetime(
-    seasons_df["name"].str.extract(r"(\d{2}/\d{4})")[0],
-    format="%m/%Y"
-)
 
-# Sắp xếp giảm dần theo date
-seasons_df = seasons_df.sort_values("date", ascending=False)
+season_name_options = seasons_df["name"].tolist()
+season_name_to_id = dict(zip(seasons_df["name"], seasons_df["id"]))
 
 # Xuất lại list
 season_name_options = seasons_df["name"].tolist()

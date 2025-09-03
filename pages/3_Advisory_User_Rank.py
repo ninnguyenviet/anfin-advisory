@@ -64,8 +64,7 @@ if season_ids:
                         previous_bonus_pool += round(pool * reward_split[i])
 
     total_lot_month = df["total_lot_standard"].max()
-    if total_lot_month is None:
-        total_lot_month = 0
+    total_lot_month = 0 if pd.isna(total_lot_month) else total_lot_month
     current_reward_pool = round(total_lot_month * 10000)
     
     reward_pool = current_reward_pool + previous_bonus_pool

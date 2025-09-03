@@ -266,7 +266,7 @@ df_current["transaction_fee_fmt"] = df_current["transaction_fee"].astype("float6
 
 st.dataframe(
     df_current[[
-        "leaderboard_id", "rank", "full_name", "user_id", "alias_name", "hidden_mode_activated_at", "mode",
+        "leaderboard_id", "rank", "full_name", "user_id","tkcv", "alias_name", "hidden_mode_activated_at", "mode",
         "registered_tnc_at", "lot", "lot_standard",
         "transaction_fee_fmt", "gross_pnl_fmt", "net_pnl_fmt"
     ]].rename(columns={
@@ -274,6 +274,7 @@ st.dataframe(
         "rank": "Hạng",
         "full_name": "Tên",
         "user_id": "User ID",
+        "tkcv": "Tài khoản CV",
         "alias_name": "Tên hiển thị",
         "hidden_mode_activated_at": "Ngày bật ẩn danh",
         "mode": "Chế độ",

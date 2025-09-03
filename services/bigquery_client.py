@@ -88,7 +88,7 @@ def load_season_data_new(season_id):
     client = bigquery.Client(credentials=credentials, project=credentials.project_id)
 
     query = """
-        SELECT user_id,leaderboard_id, full_name,registered_tnc_at, lot,lot_standard, transaction_fee,gross_pnl, net_pnl, total_lot_standard, rank, hidden_mode_activated_at, mode, alias_name    FROM `anfinx-prod.anfinx_advisory.anfinx_advisory_user_rank_by_data_vw` 
+        SELECT user_id,tkcv, leaderboard_id, full_name,registered_tnc_at, lot,lot_standard, transaction_fee,gross_pnl, net_pnl, total_lot_standard, rank, hidden_mode_activated_at, mode, alias_name    FROM `anfinx-prod.anfinx_advisory.anfinx_advisory_user_rank_by_data_vw` 
         WHERE leaderboard_id in ( @season_id)
     """
 

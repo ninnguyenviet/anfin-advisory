@@ -108,7 +108,7 @@ for c in ["lot_standard", "lot", "transaction_fee", "actual_profit_VND", "total_
 # commission theo rule
 df["type"] = df.get("type", "").astype(str).str.lower()
 df["commission_tkcv"]  = df["lot_standard"] * 150000
-df["commission_tknlk"] = df["lot_standard"] * 5000
+df["commission_tknlk"] = df["lot_standard"] * 10000
 df["commission_total"] = df["commission_tkcv"] + df["commission_tknlk"]
 
 # ---------- KPI cards ----------

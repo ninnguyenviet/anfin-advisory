@@ -301,10 +301,11 @@ st.dataframe(
 # =========================
 # Xuất CSV (tháng đang chọn)
 # =========================
-csv = df_current.to_csv(index=False).encode("utf-8")
+csv = df_current.to_csv(index=False).encode("utf-8-sig")
 st.download_button(
     label="Tải dữ liệu CSV (tháng đang chọn)",
     data=csv,
     file_name=f"advisory_user_ranks_{selected_season_name}.csv",
     mime="text/csv"
 )
+

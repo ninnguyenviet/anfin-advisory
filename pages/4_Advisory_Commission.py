@@ -101,7 +101,7 @@ if df.empty:
 
 # ---------- Compute commissions ----------
 df = df.copy()
-for c in ["lot_standard", "lot", "transaction_fee", "actual_profit_VND", "total_lot_standard"]:
+for c in ["lot_standard", "lot", "transaction_fee", "actual_profit_VND", "total_lot_standard", "profit_fee"]:
     if c in df.columns:
         df[c] = pd.to_numeric(df[c], errors="coerce")
 
@@ -138,6 +138,7 @@ if {"tkcv", "tkcv_name"}.issubset(df.columns):
         "lot_standard": "sum",
         "commission_tkcv": "sum",
         "actual_profit_VND": "sum",
+         "profit_fee":"sum",
         **({"transaction_fee": "sum"} if "transaction_fee" in cv_df.columns else {}),
     }).reset_index().sort_values(by="lot_standard", ascending=False)
 
@@ -145,16 +146,18 @@ if {"tkcv", "tkcv_name"}.issubset(df.columns):
         "lot_standard": "sum",
         "commission_tkcv": "sum",
         "actual_profit_VND": "sum",
+         "profit_fee":"sum",
         **({"transaction_fee": "sum"} if "transaction_fee" in cv_df.columns else {}),
     }).reset_index().sort_values(by="lot_standard", ascending=False)
     if "transaction_fee" in cv_sum.columns:
         cv_sum["transaction_fee_fmt"] = cv_sum["transaction_fee"].apply(fmt_money)
     cv_sum["commission_fmt"] = cv_sum["commission_tkcv"].apply(fmt_money)
     cv_sum["actual_profit_VND_fmt"] = cv_sum["actual_profit_VND"].apply(fmt_money)
+    cv_sum["profit_fee_fmt"] = cv_sum["profit_fee"].apply(fmt_money)
 
-    cols = [c for c in ["month", "tkcv", "tkcv_name", "tknlk", "tknlk_name" , "lot_standard", "transaction_fee_fmt", "actual_profit_VND_fmt", "commission_fmt"] if c in cv_sum.columns]
+    cols = [c for c in ["month", "tkcv", "tkcv_name", "tknlk", "tknlk_name" , "lot_standard", "transaction_fee_fmt", "actual_profit_VND_fmt", "profit_fee_fmt", "commission_fmt" ] if c in cv_sum.columns]
     rename = {" month": "Month", "tkcv": "Mã TKCV", "tkcv_name": "Chuyên viên", "tknlk": "Mã TKNLK", "tknlk_name": "Người liên kết",
-              "lot_standard": "Tổng Lot chuẩn", "transaction_fee_fmt": "Tổng Phí GD", "actual_profit_VND_fmt": "Lãi/lỗ thực tế",  "commission_fmt": "Hoa hồng TKCV"}
+              "lot_standard": "Tổng Lot chuẩn", "transaction_fee_fmt": "Tổng Phí GD", "actual_profit_VND_fmt": "Lãi/lỗ của NĐT", "profit_fee_fmt": "Lợi nhuận mang lại",  "commission_fmt": "Hoa hồng TKCV"}
     st.dataframe(cv_sum[cols].rename(columns=rename), use_container_width=True, hide_index=True)
     st.download_button("Tải CSV - Hoa hồng Chuyên viên", data=cv_sum_csv.to_csv(index=False).encode("utf-8-sig"),
                        file_name="commission_tkcv.csv", mime="text/csv")

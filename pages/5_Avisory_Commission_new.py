@@ -136,23 +136,23 @@ colcfg = {
     "code":        st.column_config.TextColumn("Code"),
     "name":        st.column_config.TextColumn("Name"),
 
-    "filled_qty":            st.column_config.NumberColumn("Lot", format="%,.2f"),
-    "standard_filled_qty":   st.column_config.NumberColumn("Lot chuẩn", format="%,.2f"),
+    "filled_qty":            st.column_config.NumberColumn("Lot", format="%.2f"),
+    "standard_filled_qty":   st.column_config.NumberColumn("Lot chuẩn", format="%.2f"),
 
-    "profit_first_6m":       st.column_config.NumberColumn("Doanh thu 6T đầu", format="%,.0f"),
-    "profit_after_6m":       st.column_config.NumberColumn("Doanh thu sau 6T", format="%,.0f"),
-    "profit_all_team":       st.column_config.NumberColumn("Doanh thu team", format="%,.0f"),
+    "profit_first_6m":       st.column_config.NumberColumn("Doanh thu 6T đầu", format="%.0f"),
+    "profit_after_6m":       st.column_config.NumberColumn("Doanh thu sau 6T", format="%.0f"),
+    "profit_all_team":       st.column_config.NumberColumn("Doanh thu team", format="%.0f"),
 
-    "commission_first_6m":   st.column_config.NumberColumn("Tỷ lệ HH 6T đầu", format="%,.2f"),
-    "commission_after_6m":   st.column_config.NumberColumn("Tỷ lệ HH sau 6T", format="%,.2f"),
+    "commission_first_6m":   st.column_config.NumberColumn("Tỷ lệ HH 6T đầu", format="%.2f"),
+    "commission_after_6m":   st.column_config.NumberColumn("Tỷ lệ HH sau 6T", format="%.2f"),
 
-    "commission_amount_first_6m": st.column_config.NumberColumn("HH 6T đầu", format="%,.0f"),
-    "commission_amount_after_6m": st.column_config.NumberColumn("HH sau 6T", format="%,.0f"),
+    "commission_amount_first_6m": st.column_config.NumberColumn("HH 6T đầu", format="%.0f"),
+    "commission_amount_after_6m": st.column_config.NumberColumn("HH sau 6T", format="%.0f"),
 
-    "total_commission":       st.column_config.NumberColumn("HH cá nhân", format="%,.0f"),
-    "total_commission_other": st.column_config.NumberColumn("Điều chỉnh khác", format="%,.0f"),
-    "total_commission_team":  st.column_config.NumberColumn("HH team", format="%,.0f"),
-    "total_commission_bonus": st.column_config.NumberColumn("HH bonus", format="%,.0f"),
+    "total_commission":       st.column_config.NumberColumn("HH cá nhân", format="%.0f"),
+    "total_commission_other": st.column_config.NumberColumn("Điều chỉnh khác", format="%.0f"),
+    "total_commission_team":  st.column_config.NumberColumn("HH team", format="%.0f"),
+    "total_commission_bonus": st.column_config.NumberColumn("HH bonus", format="%.0f"),
 }
 
 st.dataframe(

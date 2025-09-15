@@ -34,7 +34,6 @@ SELECT
   total_commission, total_commission_other,
   profit_all_team, total_commission_team, total_commission_bonus
 FROM `anfinx-prod.anfinx_advisory.anfinx_advisory_commission_dashboard_vw`
-LIMIT 1000
 """
 
 def fmt_money(val):

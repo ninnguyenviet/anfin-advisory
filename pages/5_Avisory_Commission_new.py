@@ -123,20 +123,44 @@ k4.caption(f"Hôm nay: {datetime.now(tz).strftime('%Y-%m-%d %H:%M:%S')}")
 
 st.divider()
 
-# ===== Detail table (tất cả cột) =====
+# ===== Detail table (tất cả cột) =====# ===== Detail table (tất cả cột, số/tiền căn phải) =====
 st.markdown("## 🧾 Chi tiết")
-# Định dạng nhanh các cột tiền cho bảng hiển thị (không đụng dữ liệu gốc)
-disp = flt.copy()
-for c in [
-    "profit_first_6m", "profit_after_6m", "profit_all_team",
-    "commission_amount_first_6m", "commission_amount_after_6m",
-    "total_commission", "total_commission_other",
-    "total_commission_team", "total_commission_bonus",
-]:
-    if c in disp.columns:
-        disp[c] = disp[c].apply(fmt_money)
 
-st.dataframe(disp, use_container_width=True, hide_index=True)
+# giữ dữ liệu dạng số để dataframe căn phải
+disp = flt.copy()
+
+# cấu hình tên cột + định dạng hiển thị (giữ số -> tự căn phải)
+colcfg = {
+    "month_order": st.column_config.TextColumn("Month"),
+    "type":        st.column_config.TextColumn("Type"),
+    "code":        st.column_config.TextColumn("Code"),
+    "name":        st.column_config.TextColumn("Name"),
+
+    "filled_qty":            st.column_config.NumberColumn("Lot", format="%,.2f"),
+    "standard_filled_qty":   st.column_config.NumberColumn("Lot chuẩn", format="%,.2f"),
+
+    "profit_first_6m":       st.column_config.NumberColumn("Doanh thu 6T đầu", format="%,.0f"),
+    "profit_after_6m":       st.column_config.NumberColumn("Doanh thu sau 6T", format="%,.0f"),
+    "profit_all_team":       st.column_config.NumberColumn("Doanh thu team", format="%,.0f"),
+
+    "commission_first_6m":   st.column_config.NumberColumn("Tỷ lệ HH 6T đầu", format="%,.2f"),
+    "commission_after_6m":   st.column_config.NumberColumn("Tỷ lệ HH sau 6T", format="%,.2f"),
+
+    "commission_amount_first_6m": st.column_config.NumberColumn("HH 6T đầu", format="%,.0f"),
+    "commission_amount_after_6m": st.column_config.NumberColumn("HH sau 6T", format="%,.0f"),
+
+    "total_commission":       st.column_config.NumberColumn("HH cá nhân", format="%,.0f"),
+    "total_commission_other": st.column_config.NumberColumn("Điều chỉnh khác", format="%,.0f"),
+    "total_commission_team":  st.column_config.NumberColumn("HH team", format="%,.0f"),
+    "total_commission_bonus": st.column_config.NumberColumn("HH bonus", format="%,.0f"),
+}
+
+st.dataframe(
+    disp,
+    use_container_width=True,
+    hide_index=True,
+    column_config=colcfg
+)
 
 st.download_button(
     "Tải CSV (dữ liệu đã lọc)",
@@ -144,3 +168,4 @@ st.download_button(
     file_name="commission_filtered.csv",
     mime="text/csv",
 )
+

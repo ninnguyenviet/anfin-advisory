@@ -91,7 +91,7 @@ with c1:
 with c2:
     sel_types = st.multiselect("Type", options=types, default=types)
 with c3:
-    broker_query = st.text_input("Broker (code hoặc name chứa…)", "")
+    broker_query = st.text_input("Code hoặc name chứa…", "")
 
 flt = df.copy()
 if sel_month:

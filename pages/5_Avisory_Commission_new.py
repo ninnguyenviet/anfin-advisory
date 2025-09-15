@@ -6,8 +6,8 @@ from google.oauth2 import service_account
 from datetime import datetime
 import pytz
 
-st.set_page_config(page_title="Commission (Simple)", page_icon="💸", layout="wide")
-st.markdown("# 💸 Commission Dashboard — Simple")
+st.set_page_config(page_title="Commission", page_icon="💸", layout="wide")
+st.markdown("# 💸 Commission Dashboard")
 
 # ===== Helpers =====
 SCOPES = [

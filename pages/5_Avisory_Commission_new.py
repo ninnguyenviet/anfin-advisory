@@ -6,13 +6,12 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime
 import pytz
-from google.cloud import bigquery
-from google.cloud.bigquery import QueryJobConfig, ArrayQueryParameter, ScalarQueryParameter
+
+# Dùng service đã đóng gói
+from services.bigquery_client import load_commission_dims, load_commission_data
 
 st.set_page_config(page_title="Commission Share", page_icon="💸", layout="wide")
 st.markdown("# 💸 Commission Share Dashboard")
-
-VIEW = "`anfinx-prod.anfinx_advisory.anfinx_advisory_commission_dashboard_vw`"
 
 # ========== Helpers ==========
 def fmt_money(val):
@@ -51,84 +50,9 @@ def _to_numeric(df, cols):
             df[c] = pd.to_numeric(df[c], errors="coerce")
     return df
 
-# ========== BigQuery loaders ==========
-@st.cache_data(ttl=600, show_spinner=False)
-def load_dims():
-    """
-    Lấy danh mục filter (tháng, type, name, code).
-    month_order được chuẩn hóa về STRING để dễ chọn.
-    """
-    client = bigquery.Client()  # yêu cầu GOOGLE_APPLICATION_CREDENTIALS hoặc ADC
-    q = f"""
-    WITH base AS (
-      SELECT
-        CAST(month_order AS STRING) AS month_order,
-        CAST(type AS STRING)  AS type,
-        CAST(code AS STRING)  AS code,
-        CAST(name AS STRING)  AS name
-      FROM {VIEW}
-    )
-    SELECT
-      ARRAY_AGG(DISTINCT month_order IGNORE NULLS) AS months,
-      ARRAY_AGG(DISTINCT type IGNORE NULLS)        AS types,
-      ARRAY_AGG(DISTINCT name IGNORE NULLS)        AS names,
-      ARRAY_AGG(DISTINCT code IGNORE NULLS)        AS codes
-    FROM base
-    """
-    df = client.query(q).result().to_dataframe()
-    if df.empty:
-        return [], [], [], []
-    months = sorted([m for m in (df.at[0, "months"] or []) if m is not None])
-    types  = sorted([t for t in (df.at[0, "types"]  or []) if t is not None])
-    names  = sorted([n for n in (df.at[0, "names"]  or []) if n is not None])
-    codes  = sorted([c for c in (df.at[0, "codes"]  or []) if c is not None])
-    return months, types, names, codes
-
-@st.cache_data(ttl=600, show_spinner=False)
-def load_data(months=None, types=None, names=None, codes=None):
-    """
-    Đọc dữ liệu đã lọc từ view.
-    So sánh theo STRING để đồng nhất với filter UI.
-    """
-    client = bigquery.Client()
-
-    query = f"""
-    SELECT
-      CAST(month_order AS STRING) AS month_order,
-      CAST(type AS STRING) AS type,
-      CAST(code AS STRING) AS code,
-      CAST(name AS STRING) AS name,
-      filled_qty, standard_filled_qty,
-      profit_first_6m, profit_after_6m,
-      commission_first_6m, commission_after_6m,
-      commission_amount_first_6m, commission_amount_after_6m,
-      total_commission, total_commission_other,
-      profit_all_team, total_commission_team, total_commission_bonus
-    FROM {VIEW}
-    WHERE
-      (@has_months = FALSE OR CAST(month_order AS STRING) IN UNNEST(@months))
-      AND (@has_types  = FALSE OR CAST(type AS STRING) IN UNNEST(@types))
-      AND (@has_names  = FALSE OR CAST(name AS STRING) IN UNNEST(@names))
-      AND (@has_codes  = FALSE OR CAST(code AS STRING) IN UNNEST(@codes))
-    """
-
-    params = [
-        ScalarQueryParameter("has_months", "BOOL", bool(months)),
-        ScalarQueryParameter("has_types",  "BOOL", bool(types)),
-        ScalarQueryParameter("has_names",  "BOOL", bool(names)),
-        ScalarQueryParameter("has_codes",  "BOOL", bool(codes)),
-        ArrayQueryParameter("months", "STRING", months or []),
-        ArrayQueryParameter("types",  "STRING", types  or []),
-        ArrayQueryParameter("names",  "STRING", names  or []),
-        ArrayQueryParameter("codes",  "STRING", codes  or []),
-    ]
-    job = client.query(query, job_config=QueryJobConfig(query_parameters=params))
-    df = job.result().to_dataframe()
-    return df
-
 # ========== Build filters ==========
 with st.spinner("Đang tải bộ lọc từ BigQuery..."):
-    months, types, names, codes = load_dims()
+    months, types, names, codes = load_commission_dims()
 
 if not months:
     st.info("Không có dữ liệu trong view.")
@@ -147,7 +71,7 @@ with c4:
     sel_codes = st.multiselect("Chọn Code", options=codes, default=codes)
 
 with st.spinner("Đang tải dữ liệu..."):
-    df = load_data(
+    df = load_commission_data(
         months=sel_months or None,
         types=sel_types or None,
         names=sel_names or None,

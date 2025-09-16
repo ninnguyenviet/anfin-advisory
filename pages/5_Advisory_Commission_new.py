@@ -26,7 +26,7 @@ NUMERIC_COLS = [
 
 QUERY = """
 SELECT
-  month_order, type, code, name,
+  month_order, type, concat("'",code) as code, name,
   filled_qty, standard_filled_qty,
   profit_first_6m, profit_after_6m,
   commission_first_6m, commission_after_6m,

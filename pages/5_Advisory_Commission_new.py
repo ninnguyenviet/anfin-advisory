@@ -26,7 +26,7 @@ NUMERIC_COLS = [
 
 QUERY = """
 SELECT
-  month_order, type, concat("'",code) as code, name,
+  month_order, type, code, name,
   filled_qty, standard_filled_qty,
   profit_first_6m, profit_after_6m,
   commission_first_6m, commission_after_6m,
@@ -174,10 +174,11 @@ styled = (
 )
 
 st.dataframe(styled, use_container_width=True, hide_index=True)
-
+csv_out = flt.copy()
+csv_out["code"] = csv_out["code"].apply(lambda x: f'="{x}"') 
 st.download_button(
     "Tải CSV (dữ liệu đã lọc)",
-    data=flt.to_csv(index=False).encode("utf-8-sig"),
+    data=csv_out.to_csv(index=False).encode("utf-8-sig"),
     file_name="commission_filtered.csv",
     mime="text/csv",
 )

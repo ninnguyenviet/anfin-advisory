@@ -182,11 +182,11 @@ def load_latest_update_times() -> pd.DataFrame:
     """
     sql = """
     WITH order_max AS (
-      SELECT MAX(DATE_ADD(CAST(created_at AS TIMESTAMP), INTERVAL 7 HOUR)) AS max_ts
+      SELECT MAX(CAST(created_at AS TIMESTAMP)) AS max_ts
       FROM `anfin-prod.commodity.order`
     ),
     pnl_max AS (
-      SELECT MAX(DATE_ADD(CAST(created_at AS TIMESTAMP), INTERVAL 7 HOUR)) AS max_ts
+      SELECT MAX(CAST(created_at AS TIMESTAMP)) AS max_ts
       FROM `anfin-prod.commodity.pnl_close_status`
     )
     SELECT

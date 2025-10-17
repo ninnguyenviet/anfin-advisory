@@ -583,23 +583,6 @@ if missing_ratio_current > 1e-9:
 
 df_top3_final = pd.DataFrame(bonuses_rows)
 
-# =========================
-# KPIs (thêm khu vực "Cập nhật dữ liệu")
-# =========================
-kpi_num_seasons = df_current["leaderboard_id"].nunique()
-kpi_num_users = df_current["user_id"].nunique()
-total_lot_month = df_current["total_lot_standard"].max()
-total_lot_month = 0 if pd.isna(total_lot_month) else total_lot_month
-
-st.markdown("## KPIs Tổng quan")
-col1, col2, col3, col4, col5, col6, col7 = st.columns(7)
-col1.metric("Số Season (đang xem)", kpi_num_seasons)
-col2.metric("Số User tham gia (tháng)", kpi_num_users)
-col3.metric("Tổng Lot của tháng", f"{total_lot_month:,.2f}")
-col4.metric("Pool tháng hiện tại (VNĐ)", f"{current_pool:,.0f}")
-col5.metric("Pool sẵn có tới tháng này (VNĐ)", f"{available_pool_upto_current:,.0f}")
-col6.metric("Tiền thưởng đã chi trong tháng này (VNĐ)", f"{bonus_given_from_available:,.0f}")
-col7.metric("Tiền chưa chi trả THÁNG NÀY (VNĐ)", f"{unpaid_in_current_month:,.0f}")
 
 # --- Khu vực cập nhật dữ liệu ---
 st.markdown("### ⏱️ Cập nhật dữ liệu")
@@ -624,16 +607,23 @@ u1.metric("Order cập nhật đến", fmt_ts(order_last_update))
 u2.metric("PnL cập nhật đến", fmt_ts(pnl_last_update))
 u3.metric("Dashboard cập nhật lúc", now_local.strftime("%Y-%m-%d %H:%M"))
 
-# Bảng chi tiết 2 nguồn
-if any(v is not None for v in [order_last_update, pnl_last_update]):
-    st.dataframe(
-        pd.DataFrame([
-            {"Nguồn": "commodity.order", "Cập nhật đến (VN)": fmt_ts(order_last_update)},
-            {"Nguồn": "pnl_close_status", "Cập nhật đến (VN)": fmt_ts(pnl_last_update)},
-            {"Nguồn": "→ Data update đến (min)", "Cập nhật đến (VN)": fmt_ts(data_update_to)},
-        ]),
-        use_container_width=True, hide_index=True
-    )
+# =========================
+# KPIs (thêm khu vực "Cập nhật dữ liệu")
+# =========================
+kpi_num_seasons = df_current["leaderboard_id"].nunique()
+kpi_num_users = df_current["user_id"].nunique()
+total_lot_month = df_current["total_lot_standard"].max()
+total_lot_month = 0 if pd.isna(total_lot_month) else total_lot_month
+
+st.markdown("## KPIs Tổng quan")
+col1, col2, col3, col4, col5, col6, col7 = st.columns(7)
+col1.metric("Số Season (đang xem)", kpi_num_seasons)
+col2.metric("Số User tham gia (tháng)", kpi_num_users)
+col3.metric("Tổng Lot của tháng", f"{total_lot_month:,.2f}")
+col4.metric("Pool tháng hiện tại (VNĐ)", f"{current_pool:,.0f}")
+col5.metric("Pool sẵn có tới tháng này (VNĐ)", f"{available_pool_upto_current:,.0f}")
+col6.metric("Tiền thưởng đã chi trong tháng này (VNĐ)", f"{bonus_given_from_available:,.0f}")
+col7.metric("Tiền chưa chi trả THÁNG NÀY (VNĐ)", f"{unpaid_in_current_month:,.0f}")
 
 # =========================
 # Top 3 tháng đang chọn

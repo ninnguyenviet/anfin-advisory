@@ -308,6 +308,8 @@
 #     file_name=f"advisory_user_ranks_{selected_season_name}.csv",
 #     mime="text/csv"
 # )
+
+
 import streamlit as st
 import pandas as pd
 from datetime import datetime
@@ -427,10 +429,10 @@ selected_idx_list = seasons_df.index[seasons_df["id"] == selected_season_id].tol
 selected_idx = selected_idx_list[0] if selected_idx_list else 0
 
 # =========================
-# 1) Cộng dồn CHƯA CHI của TẤT CẢ THÁNG TRƯỚC
+# 1) Cộng dồn CHƯA CHI của TẤT CẢ THÁNG TRƯỚC (tính trên POOL SẴN CÓ từng tháng)
 # =========================
-carryover_rows = []            # để hiển thị chi tiết
-cumulative_unpaid_before = 0   # cộng dồn (chỉ phần CHƯA CHI) đến cuối THÁNG TRƯỚC
+carryover_rows = []             # hiển thị chi tiết
+cumulative_unpaid_before = 0    # cộng dồn CHƯA CHI đến cuối THÁNG TRƯỚC (rolling)
 
 if selected_idx > 0:
     for i in range(0, selected_idx):
@@ -440,44 +442,67 @@ if selected_idx > 0:
 
         df_prev = load_season_data_new([prev_id])
         if df_prev.empty:
+            # Không có data, pool = 0, cộng dồn giữ nguyên
+            carryover_rows.append({
+                "Season": prev_name,
+                "Pool tháng (VNĐ)": 0,
+                "Cộng dồn chưa chi đến cuối THÁNG TRƯỚC (VNĐ)": cumulative_unpaid_before,
+                "Pool sẵn có trong THÁNG (VNĐ)": cumulative_unpaid_before,
+                "Đã chi trả trong THÁNG (VNĐ)": 0,
+                "Tiền chưa chi trả trong THÁNG (VNĐ)": cumulative_unpaid_before,
+                "Cộng dồn chưa chi đến cuối THÁNG (VNĐ)": cumulative_unpaid_before
+            })
             continue
 
         pool_prev = month_pool_from_df(df_prev)
         df_prev_top3 = df_prev.sort_values(by="lot_standard", ascending=False).head(3).reset_index(drop=True)
 
-        unpaid_this_month = 0
+        # Pool SẴN CÓ cho THÁNG TRƯỚC = pool tháng + cộng dồn trước đó
+        available_before_this_month = cumulative_unpaid_before
+        available_pool_this_month = pool_prev + available_before_this_month
+
         used_ratio = 0.0
+        paid_this_month = 0
+        unpaid_this_month = 0
+
+        # Phân bổ theo reward_split trên "pool sẵn có của tháng"
         for slot, row_prev in enumerate(df_prev_top3.itertuples()):
             if slot >= len(reward_split):
                 break
-            used_ratio += reward_split[slot]
+            ratio = reward_split[slot]
+            used_ratio += ratio
+
             rprev = row_prev._asdict()
-            portion = round(pool_prev * reward_split[slot])
-            if not is_eligible(rprev):
+            portion = round(available_pool_this_month * ratio)
+            if is_eligible(rprev):
+                paid_this_month += portion
+            else:
                 unpaid_this_month += portion
 
-        # Nếu thiếu TOP (ví dụ chỉ có 1-2 người), phần split còn lại cũng không thể trả → cộng dồn
+        # Nếu thiếu TOP (ít hơn 3 người), phần split còn lại cũng là "không chi được" trong tháng
         missing_ratio = max(0.0, 1.0 - used_ratio)
         if missing_ratio > 1e-9:
-            unpaid_this_month += round(pool_prev * missing_ratio)
+            unpaid_this_month += round(available_pool_this_month * missing_ratio)
 
-        paid_this_month = pool_prev - unpaid_this_month  # ĐÃ CHI trong tháng (các slot đủ ĐK)
-        cumulative_unpaid_before += unpaid_this_month    # chỉ cộng dồn phần CHƯA CHI
+        # Cộng dồn chưa chi mới = phần chưa chi của THÁNG này
+        cumulative_unpaid_before = unpaid_this_month
 
         carryover_rows.append({
             "Season": prev_name,
             "Pool tháng (VNĐ)": pool_prev,
-            "Đã chi trả trong tháng (VNĐ)": paid_this_month,
-            "Tiền chưa chi trả trong tháng (VNĐ)": unpaid_this_month,
-            "Cộng dồn chưa chi đến cuối tháng (VNĐ)": cumulative_unpaid_before
+            "Cộng dồn chưa chi đến cuối THÁNG TRƯỚC (VNĐ)": available_before_this_month,
+            "Pool sẵn có trong THÁNG (VNĐ)": available_pool_this_month,
+            "Đã chi trả trong THÁNG (VNĐ)": paid_this_month,
+            "Tiền chưa chi trả trong THÁNG (VNĐ)": unpaid_this_month,
+            "Cộng dồn chưa chi đến cuối THÁNG (VNĐ)": cumulative_unpaid_before
         })
 
 # =========================
-# 2) Tháng đang chọn: Pool hiện tại & Pool SẴN CÓ (đúng công thức yêu cầu)
+# 2) Tháng đang chọn: Pool hiện tại & Pool SẴN CÓ (đúng công thức)
 # =========================
 current_pool = month_pool_from_df(df_current)
 
-# ✅ Pool sẵn có tới tháng này = Pool tháng hiện tại + Cộng dồn chưa chi đến cuối THÁNG TRƯỚC
+# ✅ Pool sẵn có tới THÁNG NÀY = Pool tháng hiện tại + Cộng dồn chưa chi đến cuối THÁNG TRƯỚC
 available_pool_upto_current = current_pool + cumulative_unpaid_before
 
 # =========================
@@ -485,8 +510,8 @@ available_pool_upto_current = current_pool + cumulative_unpaid_before
 # =========================
 df_top3_current = df_current.sort_values(by="lot_standard", ascending=False).head(3).reset_index(drop=True)
 
-bonus_given_from_available = 0         # Số tiền CHI được trong tháng đang chọn (ăn vào pool sẵn có)
-unpaid_in_current_month = 0            # Phần còn lại không trả được → tiếp tục cộng dồn
+bonus_given_from_available = 0       # Số tiền CHI trong tháng đang chọn (ăn vào pool sẵn có)
+unpaid_in_current_month = 0          # Phần không chi được trong THÁNG NÀY → sẽ cộng dồn về sau
 bonuses_rows = []
 used_ratio_current = 0.0
 
@@ -542,10 +567,9 @@ col2.metric("Số User tham gia (tháng)", kpi_num_users)
 col3.metric("Tổng Lot của tháng", f"{total_lot_month:,.2f}")
 col4.metric("Pool tháng hiện tại (VNĐ)", f"{current_pool:,.0f}")
 
-# ✅ ĐÚNG YÊU CẦU: Pool sẵn có tới tháng này = current_pool + cumulative_unpaid_before
+# ✅ ĐÚNG YÊU CẦU
 col5.metric("Pool sẵn có tới tháng này (VNĐ)", f"{available_pool_upto_current:,.0f}")
 
-# Hai KPI theo dõi tình trạng chi/hoãn của THÁNG NÀY
 col6.metric("Tiền thưởng đã chi trong tháng này (VNĐ)", f"{bonus_given_from_available:,.0f}")
 col7.metric("Tiền chưa chi trả THÁNG NÀY (VNĐ)", f"{unpaid_in_current_month:,.0f}")
 
@@ -556,13 +580,24 @@ st.markdown("## 🏅 Top 3 User tháng hiện tại")
 st.dataframe(df_top3_final, use_container_width=True, hide_index=True)
 
 # =========================
-# (Tùy chọn) Chi tiết cộng dồn theo từng tháng trước
+# Chi tiết cộng dồn theo từng tháng trước (đÃ sửa theo logic pool sẵn có)
 # =========================
 with st.expander("Chi tiết cộng dồn theo từng tháng trước"):
     if len(carryover_rows) == 0:
         st.info("Không có khoản cộng dồn nào từ các tháng trước.")
     else:
         df_carry = pd.DataFrame(carryover_rows)
+        # Sắp xếp cột để dễ đọc
+        display_cols = [
+            "Season",
+            "Pool tháng (VNĐ)",
+            "Cộng dồn chưa chi đến cuối THÁNG TRƯỚC (VNĐ)",
+            "Pool sẵn có trong THÁNG (VNĐ)",
+            "Đã chi trả trong THÁNG (VNĐ)",
+            "Tiền chưa chi trả trong THÁNG (VNĐ)",
+            "Cộng dồn chưa chi đến cuối THÁNG (VNĐ)"
+        ]
+        df_carry = df_carry[display_cols]
         st.dataframe(df_carry, use_container_width=True, hide_index=True)
         st.caption(f"**Cộng dồn chưa chi đến cuối THÁNG TRƯỚC:** {format_money(cumulative_unpaid_before)}")
 

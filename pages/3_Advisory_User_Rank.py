@@ -354,7 +354,8 @@
 import streamlit as st
 import pandas as pd
 from datetime import datetime
-from zoneinfo import ZoneInfo
+from zoneinfo import ZoneInfo  # Python 3.9+
+
 from services.bigquery_client import (
     load_seasons_from_bq,
     load_season_data_new,
@@ -390,47 +391,82 @@ def format_money(val):
         return f"{val / 1e3:,.0f} nghìn"
     return f"{val:,.0f}"
 
+
 def safe_float(x, default=0.0):
     try:
         return float(x)
     except Exception:
         return float(default)
 
-# ===== TnC deadline =====
-def tnc_before_deadline(registered_tnc_at, season_start_date):
+
+def parse_datetime_safe(x):
+    if x is None or pd.isna(x):
+        return None
+    try:
+        return pd.to_datetime(x)
+    except Exception:
+        return None
+
+
+def tnc_before_10th_of_month(registered_tnc_at, month_value) -> bool:
     """
-    Rule: registered_tnc_at <= ngày 10 của tháng season
+    T&C phải được đăng ký trước hoặc bằng ngày 10
+    của tháng tương ứng với cột `month` (YYYY-MM-01)
     """
-    if pd.isnull(registered_tnc_at) or pd.isnull(season_start_date):
+    tnc_time = parse_datetime_safe(registered_tnc_at)
+    month_time = parse_datetime_safe(month_value)
+
+    if tnc_time is None or month_time is None:
         return False
 
-    registered_tnc_at = pd.to_datetime(registered_tnc_at)
-    season_start_date = pd.to_datetime(season_start_date)
+    try:
+        deadline = month_time.replace(day=10)
+    except Exception:
+        return False
 
-    deadline = season_start_date.replace(
-        day=10, hour=23, minute=59, second=59
-    )
-    return registered_tnc_at <= deadline
+    return tnc_time <= deadline
 
-def is_eligible(rec: dict, season_start_date) -> bool:
-    has_tnc = pd.notnull(rec.get("registered_tnc_at"))
-    tnc_in_time = tnc_before_deadline(
-        rec.get("registered_tnc_at"), season_start_date
+
+def is_eligible(rec: dict) -> bool:
+    """
+    Điều kiện nhận thưởng:
+    - Đã đăng ký T&C
+    - T&C trước hoặc bằng ngày 10 của tháng
+    - Mode PUBLIC
+    - Net PnL > 0
+    """
+    valid_tnc = tnc_before_10th_of_month(
+        rec.get("registered_tnc_at"),
+        rec.get("month")
     )
+
     mode_public = rec.get("mode") == "PUBLIC"
-    net_pnl_pos = pd.notnull(rec.get("net_pnl")) and safe_float(rec.get("net_pnl")) > 0
-    return bool(has_tnc and tnc_in_time and mode_public and net_pnl_pos)
+    net_pnl_pos = safe_float(rec.get("net_pnl")) > 0
 
-def ineligible_reason(rec: dict, season_start_date) -> str | None:
-    if pd.isnull(rec.get("registered_tnc_at")):
-        return "Chưa TnC"
-    if not tnc_before_deadline(rec.get("registered_tnc_at"), season_start_date):
-        return "TnC sau ngày 10"
+    return bool(valid_tnc and mode_public and net_pnl_pos)
+
+
+def ineligible_reason(rec: dict) -> str | None:
+    if parse_datetime_safe(rec.get("registered_tnc_at")) is None:
+        return "Chưa T&C"
+
+    if parse_datetime_safe(rec.get("month")) is None:
+        return "Thiếu dữ liệu tháng"
+
+    if not tnc_before_10th_of_month(
+        rec.get("registered_tnc_at"),
+        rec.get("month")
+    ):
+        return "T&C sau ngày 10"
+
     if rec.get("mode") == "PRIVATE":
         return "Đang bật ẩn danh"
-    if pd.isnull(rec.get("net_pnl")) or safe_float(rec.get("net_pnl")) <= 0:
+
+    if safe_float(rec.get("net_pnl")) <= 0:
         return "Khách bị lỗ"
+
     return None
+
 
 def month_pool_from_df(df_month: pd.DataFrame) -> int:
     if df_month.empty:
@@ -438,6 +474,7 @@ def month_pool_from_df(df_month: pd.DataFrame) -> int:
     total_lot_month = df_month["total_lot_standard"].max()
     total_lot_month = 0 if pd.isna(total_lot_month) else total_lot_month
     return round(total_lot_month * 10_000)
+
 
 reward_split = [0.5, 0.3, 0.2]
 
@@ -464,97 +501,101 @@ default_idx_candidates = seasons_df[
 default_index = default_idx_candidates[0] if default_idx_candidates else 0
 
 selected_season_name = st.selectbox(
-    "Chọn Season:", options=season_name_options, index=default_index
+    "Chọn Season:",
+    options=season_name_options,
+    index=default_index
 )
 selected_season_id = season_name_to_id[selected_season_name]
 
-selected_idx = seasons_df.index[
-    seasons_df["id"] == selected_season_id
-][0]
-season_start_date_current = seasons_df.loc[selected_idx, "start_date"]
-
 # =========================
-# Update times
+# Load update times
 # =========================
 with st.spinner("Đang kiểm tra mốc cập nhật dữ liệu..."):
     _df_updates = load_latest_update_times()
-    order_last_update = (
-        pd.to_datetime(_df_updates.loc[0, "order_last_update"])
-        if not _df_updates.empty and "order_last_update" in _df_updates.columns
-        else None
-    )
-    pnl_last_update = (
-        pd.to_datetime(_df_updates.loc[0, "pnl_last_update"])
-        if not _df_updates.empty and "pnl_last_update" in _df_updates.columns
-        else None
-    )
+    if _df_updates.empty or _df_updates.isna().all(axis=None):
+        order_last_update = None
+        pnl_last_update = None
+    else:
+        order_last_update = pd.to_datetime(
+            _df_updates.loc[0, "order_last_update"]
+        ) if "order_last_update" in _df_updates.columns else None
+
+        pnl_last_update = pd.to_datetime(
+            _df_updates.loc[0, "pnl_last_update"]
+        ) if "pnl_last_update" in _df_updates.columns else None
+
+    candidates = [t for t in [order_last_update, pnl_last_update] if pd.notnull(t)]
+    data_update_to = min(candidates) if candidates else None
 
 # =========================
-# Load current season
+# Main data
 # =========================
 with st.spinner("Đang tải dữ liệu season..."):
     df_current = load_season_data_new([selected_season_id])
     if df_current.empty:
         st.info("Không có dữ liệu cho season được chọn.")
         st.stop()
-    df_current.sort_values(by=["leaderboard_id", "rank"], inplace=True)
+
+df_current.sort_values(by=["leaderboard_id", "rank"], inplace=True)
 
 # =========================
-# 1) Carry over previous seasons
+# Carryover from previous months
 # =========================
 carryover_rows = []
 cumulative_unpaid_before = 0
 
-for i in range(0, selected_idx):
-    prev_row = seasons_df.iloc[i]
-    prev_id = prev_row["id"]
-    prev_name = prev_row["name"]
-    prev_start_date = prev_row["start_date"]
+selected_idx = seasons_df.index[
+    seasons_df["id"] == selected_season_id
+][0]
 
-    df_prev = load_season_data_new([prev_id])
-    pool_prev = month_pool_from_df(df_prev)
-    available_pool = pool_prev + cumulative_unpaid_before
+if selected_idx > 0:
+    for i in range(selected_idx):
+        prev_season = seasons_df.iloc[i]
+        df_prev = load_season_data_new([prev_season["id"]])
 
-    paid, unpaid, used_ratio = 0, 0, 0.0
-    df_prev_top3 = (
-        df_prev.sort_values(by="lot_standard", ascending=False)
-        .head(3)
-        .reset_index(drop=True)
-    )
+        pool_prev = month_pool_from_df(df_prev)
+        available_pool = pool_prev + cumulative_unpaid_before
 
-    for slot, row_prev in enumerate(df_prev_top3.itertuples()):
-        ratio = reward_split[slot]
-        used_ratio += ratio
-        amount = round(available_pool * ratio)
-        r = row_prev._asdict()
+        paid, unpaid = 0, 0
+        used_ratio = 0.0
 
-        if is_eligible(r, prev_start_date):
-            paid += amount
-        else:
-            unpaid += amount
+        df_prev_top3 = (
+            df_prev.sort_values(by="lot_standard", ascending=False)
+            .head(3)
+            .reset_index(drop=True)
+        )
 
-    missing_ratio = max(0.0, 1.0 - used_ratio)
-    unpaid += round(available_pool * missing_ratio)
+        for slot, row in enumerate(df_prev_top3.itertuples()):
+            if slot >= len(reward_split):
+                break
 
-    cumulative_unpaid_before = unpaid
+            ratio = reward_split[slot]
+            used_ratio += ratio
+            amount = round(available_pool * ratio)
 
-    carryover_rows.append({
-        "Season": prev_name,
-        "Pool tháng (VNĐ)": pool_prev,
-        "Cộng dồn đầu tháng (VNĐ)": available_pool - pool_prev,
-        "Pool sẵn có trong THÁNG (VNĐ)": available_pool,
-        "Đã chi trả trong THÁNG (VNĐ)": paid,
-        "Tiền chưa chi trả trong THÁNG (VNĐ)": unpaid,
-        "Cộng dồn cuối THÁNG (VNĐ)": cumulative_unpaid_before
-    })
+            if is_eligible(row._asdict()):
+                paid += amount
+            else:
+                unpaid += amount
+
+        if used_ratio < 1:
+            unpaid += round(available_pool * (1 - used_ratio))
+
+        cumulative_unpaid_before = unpaid
+
+        carryover_rows.append({
+            "Season": prev_season["name"],
+            "Pool tháng (VNĐ)": pool_prev,
+            "Cộng dồn chưa chi đến cuối THÁNG (VNĐ)": cumulative_unpaid_before
+        })
 
 # =========================
-# 2) Current month allocation
+# Current month distribution
 # =========================
 current_pool = month_pool_from_df(df_current)
 available_pool_upto_current = current_pool + cumulative_unpaid_before
 
-df_top3_current = (
+df_top3 = (
     df_current.sort_values(by="lot_standard", ascending=False)
     .head(3)
     .reset_index(drop=True)
@@ -565,13 +606,12 @@ unpaid_current = 0
 rows = []
 used_ratio = 0.0
 
-for slot, row in enumerate(df_top3_current.itertuples()):
+for slot, row in enumerate(df_top3.itertuples()):
     ratio = reward_split[slot]
     used_ratio += ratio
     amount = round(available_pool_upto_current * ratio)
-    r = row._asdict()
 
-    eligible = is_eligible(r, season_start_date_current)
+    eligible = is_eligible(row._asdict())
     if eligible:
         bonus_given += amount
     else:
@@ -579,61 +619,39 @@ for slot, row in enumerate(df_top3_current.itertuples()):
 
     rows.append({
         "Hạng": f"TOP {slot+1}",
-        "User ID": r.get("user_id"),
-        "Họ tên": r.get("full_name"),
-        "Tổng Lot": r.get("lot_standard"),
+        "User ID": row.user_id,
+        "Họ tên": row.full_name,
+        "Tổng Lot": row.lot_standard,
         "Tiền thưởng (VNĐ)": f"{amount:,.0f}",
-        "Điều kiện": "Được nhận" if eligible else "Cộng dồn tháng sau",
-        "Lý do": None if eligible else ineligible_reason(r, season_start_date_current)
+        "Trạng thái": "Được nhận" if eligible else "Cộng dồn",
+        "Lý do": None if eligible else ineligible_reason(row._asdict())
     })
 
-missing_ratio = max(0.0, 1.0 - used_ratio)
-unpaid_current += round(available_pool_upto_current * missing_ratio)
+if used_ratio < 1:
+    unpaid_current += round(available_pool_upto_current * (1 - used_ratio))
 
 df_top3_final = pd.DataFrame(rows)
 
 # =========================
-# Update info
+# UI
 # =========================
-st.markdown("### ⏱️ Cập nhật dữ liệu")
-c1, c2, c3 = st.columns(3)
-c1.metric("Order cập nhật đến", str(order_last_update))
-c2.metric("PnL cập nhật đến", str(pnl_last_update))
-c3.metric("Dashboard cập nhật lúc", now_local.strftime("%Y-%m-%d %H:%M"))
-
-# =========================
-# KPIs
-# =========================
-st.markdown("## KPIs Tổng quan")
-k1, k2, k3, k4, k5, k6, k7 = st.columns(7)
-k1.metric("Số User", df_current["user_id"].nunique())
-k2.metric("Tổng Lot", f"{df_current['total_lot_standard'].max():,.2f}")
-k3.metric("Pool tháng", f"{current_pool:,.0f}")
-k4.metric("Pool sẵn có", f"{available_pool_upto_current:,.0f}")
-k5.metric("Đã chi", f"{bonus_given:,.0f}")
-k6.metric("Chưa chi tháng này", f"{unpaid_current:,.0f}")
-k7.metric("Cộng dồn sang sau", f"{unpaid_current:,.0f}")
-
-# =========================
-# Tables
-# =========================
-st.markdown("## 🏅 Top 3 tháng hiện tại")
+st.markdown("## 🏅 Top 3 User tháng hiện tại")
 st.dataframe(df_top3_final, use_container_width=True, hide_index=True)
 
-with st.expander("Chi tiết cộng dồn các tháng trước"):
-    if carryover_rows:
-        st.dataframe(pd.DataFrame(carryover_rows), use_container_width=True)
-    else:
-        st.info("Không có dữ liệu cộng dồn")
+st.markdown("## KPIs")
+c1, c2, c3, c4 = st.columns(4)
+c1.metric("Pool tháng", f"{current_pool:,.0f}")
+c2.metric("Pool sẵn có", f"{available_pool_upto_current:,.0f}")
+c3.metric("Đã chi", f"{bonus_given:,.0f}")
+c4.metric("Chưa chi", f"{unpaid_current:,.0f}")
 
 # =========================
 # Export
 # =========================
 csv = df_current.to_csv(index=False).encode("utf-8-sig")
 st.download_button(
-    "Tải CSV tháng đang chọn",
-    csv,
-    f"advisory_user_rank_{selected_season_name}.csv",
-    "text/csv"
+    "Tải CSV",
+    data=csv,
+    file_name=f"advisory_user_rank_{selected_season_name}.csv",
+    mime="text/csv"
 )
-
